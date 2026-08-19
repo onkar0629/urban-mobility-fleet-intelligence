@@ -2,50 +2,51 @@
 
 ### ❄️ End-to-End Data Engineering Project
 
-A production-oriented Data Engineering project for urban mobility analytics, combining **Azure, ADLS Gen2, Snowflake, Python, SQL, Linux, and Power BI**.
-
----
-
-## 🏗️ Architecture
+A cloud-based Data Engineering platform that transforms urban mobility data into trusted analytical datasets for **trip, station, fleet, and rider intelligence**.
 
 ![Project Architecture](assets/project_architecture.png)
 
-**Divvy Data → Azure ADLS Gen2 → Snowflake → Data Marts → Power BI**
+**Azure ADLS Gen2 → Snowflake → Data Marts → Power BI**
 
 ---
 
-## 🔄 Data Engineering Flow
+## 🚀 What is this project?
+
+This project builds an end-to-end data platform for urban mobility.
+
+Historical trip data and GBFS mobility feeds are **ingested, processed, validated, transformed, and served through analytical data marts**.
+
+The platform brings together:
+
+**Azure ADLS Gen2 • Snowflake • Python • SQL • Linux • Power BI**
+
+---
+
+## ⚙️ Data Engineering
+
+The project focuses on practical Data Engineering concepts:
+
+- Batch & incremental ingestion
+- Cloud data lake architecture
+- Snowflake ELT pipelines
+- JSON / semi-structured data processing
+- Dimensional data modeling
+- Data quality validation
+- Data lineage
+- Monitoring & error handling
 
 ![Data Flow](assets/data_flow.png)
-
-The platform brings together historical mobility data and GBFS mobility feeds through a cloud-based data engineering pipeline.
-
----
-
-## ❄️ Platform Layers
-
-```text
-Source
-  ↓
-Azure ADLS Gen2
-  ↓
-Snowflake
-  ↓
-RAW → STAGING → CORE → DATA MARTS
-  ↓
-Power BI
-```
 
 ---
 
 ## 🧰 Technology Stack
 
-| Area | Technology |
+| Category | Technology |
 |---|---|
 | Cloud | Microsoft Azure |
-| Cloud Storage | ADLS Gen2 |
+| Storage | ADLS Gen2 |
 | Data Warehouse | Snowflake |
-| Transformation | SQL / ELT |
+| Processing | SQL / ELT |
 | Programming | Python |
 | Automation | Linux / Bash |
 | BI | Power BI |
@@ -53,82 +54,36 @@ Power BI
 
 ---
 
-## ⚙️ Key Data Engineering Concepts
+## 📊 What can it answer?
 
-- Batch and incremental data ingestion
-- Snowflake layered data architecture
-- SQL-based ELT transformations
-- Semi-structured JSON processing
-- Dimensional data modeling
-- Data quality validation
-- Data lineage
-- Monitoring and error handling
-- Cloud data lake integration
-- Role-based access and secure configuration
+🚲 **Trips** — demand, duration, peak periods  
+📍 **Stations** — utilization, availability, demand  
+🚴 **Fleet** — availability and operational trends  
+👤 **Riders** — usage patterns and behavior
 
 ---
 
-## 📊 Analytics
+## 📚 Documentation
 
-The platform is designed to support:
+Detailed engineering documentation:
 
-**Trips • Stations • Fleet • Riders • Operations**
-
-Power BI will consume curated analytical data from Snowflake.
-
----
-
-## 📚 Project Documentation
-
-| Document | Description |
-|---|---|
-| [Business Requirements](docs/01_Business_Requirements.md) | Business objectives and KPIs |
-| [Source & Data Dictionary](docs/02_Source_and_Data_Dictionary.md) | Source datasets and definitions |
-| [HLD Architecture](docs/03_HLD_Architecture.md) | High-level architecture |
-| [Data Flow](docs/04_Data_Flow_Diagram.md) | End-to-end data movement |
-| [Data Model](docs/05_Data_Model_Star_Schema.md) | Dimensional model |
-| [Source-to-Target Mapping](docs/06_Source_to_Target_Mapping.md) | Transformation mapping |
-| [ETL Design](docs/07_Pipeline_ETL_Design.md) | Ingestion and transformation |
-| [Data Quality](docs/08_Data_Quality_Validation.md) | Validation framework |
-| [Data Lineage](docs/09_Data_Lineage.md) | Source-to-report lineage |
-| [Monitoring & Error Handling](docs/10_Monitoring_Error_Handling.md) | Operational design |
-| [Deployment Runbook](docs/11_Deployment_Runbook.md) | Deployment procedures |
+- [Business Requirements](docs/01_Business_Requirements.md)
+- [Architecture](docs/03_HLD_Architecture.md)
+- [Data Flow](docs/04_Data_Flow_Diagram.md)
+- [Data Model](docs/05_Data_Model_Star_Schema.md)
+- [ETL Design](docs/07_Pipeline_ETL_Design.md)
+- [Data Quality](docs/08_Data_Quality_Validation.md)
+- [Data Lineage](docs/09_Data_Lineage.md)
+- [Monitoring](docs/10_Monitoring_Error_Handling.md)
+- [Deployment](docs/11_Deployment_Runbook.md)
 
 ---
 
-## 📈 Project Status
+## 🚧 Project Status
 
-**Phase 1 — Project Foundation**
+**Currently under active development.**
 
-- [x] Repository initialized
-- [x] Project structure created
-- [x] Python virtual environment configured
-- [x] Documentation structure created
-- [x] Git branching strategy established
-- [ ] Source data profiling
-- [ ] Azure ADLS Gen2 implementation
-- [ ] Snowflake implementation
-- [ ] Python ingestion pipeline
-- [ ] Data quality framework
-- [ ] Monitoring
-- [ ] Power BI dashboards
-- [ ] Deployment
-
----
-
-## 🌿 Development Workflow
-
-```text
-main
-  ↑
-Pull Request
-  ↑
-onkar
-  ↑
-Development
-```
-
-`main` is maintained as the stable branch. Development work is performed on feature/developer branches and merged through Pull Requests.
+The platform is being built incrementally from source ingestion through Snowflake transformation, validation, monitoring, and BI.
 
 ---
 
@@ -138,9 +93,3 @@ Development
 Aspiring Data Engineer
 
 **SQL • Snowflake • Azure • Python • Data Engineering**
-
----
-
-> ❄️ **Build. Validate. Monitor. Deliver.**
->
-> A portfolio project focused on practical Data Engineering rather than dashboard-only development.
