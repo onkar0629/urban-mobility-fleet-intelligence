@@ -1,8 +1,8 @@
 # 🚲 Urban Mobility & Fleet Intelligence
 
-### ❄️ Snowflake-Centric Data Engineering Project
+### ❄️ End-to-End Data Engineering Project
 
-An end-to-end Data Engineering platform built using **Snowflake, Azure ADLS Gen2, Python, SQL, Linux, and Power BI**, using real Divvy mobility data.
+A production-oriented Data Engineering project for urban mobility analytics, combining **Azure, ADLS Gen2, Snowflake, Python, SQL, Linux, and Power BI**.
 
 ---
 
@@ -14,68 +14,27 @@ An end-to-end Data Engineering platform built using **Snowflake, Azure ADLS Gen2
 
 ---
 
-## 🔄 Data Pipeline
+## 🔄 Data Engineering Flow
 
-![Data Pipeline](assets/data_flow.png)
+![Data Flow](assets/data_flow.png)
 
-The pipeline combines **historical trip data** with **GBFS mobility feeds** and processes them through the Snowflake data platform.
-
----
-
-## ❄️ Snowflake Data Platform
-
-![Snowflake Architecture](assets/snowflake_layers.png)
-
-`RAW → STAGING → CORE → DATA MARTS`
-
-Snowflake is the central platform for ingestion, transformation, modeling, and analytics.
+The platform brings together historical mobility data and GBFS mobility feeds through a cloud-based data engineering pipeline.
 
 ---
 
-## 🗄️ Data Model
+## ❄️ Platform Layers
 
-![Star Schema](assets/star_schema.png)
-
-Dimensional modeling supports trip, station, fleet, and rider analytics.
-
----
-
-## ☁️ Azure Data Lake
-
-![Azure ADLS](assets/adls_structure.png)
-
-Azure **ADLS Gen2** acts as the cloud landing layer between external data sources and Snowflake.
-
----
-
-## 🐍 Python Ingestion
-
-![Python GBFS Ingestion](assets/python_ingestion.png)
-
-Python handles GBFS API extraction, JSON processing, validation, logging, and ingestion preparation.
-
----
-
-## 🧪 Data Quality
-
-![Data Quality](assets/data_quality.png)
-
-Validation covers:
-
-- Null values
-- Duplicates
-- Invalid timestamps
-- Invalid trip durations
-- Invalid station references
-- Malformed JSON
-
----
-
-## 📊 Power BI
-
-![Power BI Dashboard](assets/powerbi_dashboard.png)
-
-**Trips • Stations • Fleet • Riders**
+```text
+Source
+  ↓
+Azure ADLS Gen2
+  ↓
+Snowflake
+  ↓
+RAW → STAGING → CORE → DATA MARTS
+  ↓
+Power BI
+```
 
 ---
 
@@ -83,8 +42,8 @@ Validation covers:
 
 | Area | Technology |
 |---|---|
-| Cloud | Azure |
-| Storage | ADLS Gen2 |
+| Cloud | Microsoft Azure |
+| Cloud Storage | ADLS Gen2 |
 | Data Warehouse | Snowflake |
 | Transformation | SQL / ELT |
 | Programming | Python |
@@ -94,42 +53,94 @@ Validation covers:
 
 ---
 
-## 📚 Documentation
+## ⚙️ Key Data Engineering Concepts
 
-| Document | Description |
-|---|---|
-| [Business Requirements](docs/01_Business_Requirements.md) | Business objectives |
-| [Source & Data Dictionary](docs/02_Source_and_Data_Dictionary.md) | Source data |
-| [Architecture](docs/03_HLD_Architecture.md) | Technical architecture |
-| [Data Flow](docs/04_Data_Flow_Diagram.md) | End-to-end pipeline |
-| [Data Model](docs/05_Data_Model_Star_Schema.md) | Star schema |
-| [Source-to-Target Mapping](docs/06_Source_to_Target_Mapping.md) | Transformation mapping |
-| [ETL Design](docs/07_Pipeline_ETL_Design.md) | Pipeline implementation |
-| [Data Quality](docs/08_Data_Quality_Validation.md) | Validation framework |
-| [Data Lineage](docs/09_Data_Lineage.md) | Source-to-report lineage |
-| [Monitoring](docs/10_Monitoring_Error_Handling.md) | Operational monitoring |
-| [Deployment](docs/11_Deployment_Runbook.md) | Deployment process |
+- Batch and incremental data ingestion
+- Snowflake layered data architecture
+- SQL-based ELT transformations
+- Semi-structured JSON processing
+- Dimensional data modeling
+- Data quality validation
+- Data lineage
+- Monitoring and error handling
+- Cloud data lake integration
+- Role-based access and secure configuration
 
 ---
 
-## 🌿 Development
+## 📊 Analytics
+
+The platform is designed to support:
+
+**Trips • Stations • Fleet • Riders • Operations**
+
+Power BI will consume curated analytical data from Snowflake.
+
+---
+
+## 📚 Project Documentation
+
+| Document | Description |
+|---|---|
+| [Business Requirements](docs/01_Business_Requirements.md) | Business objectives and KPIs |
+| [Source & Data Dictionary](docs/02_Source_and_Data_Dictionary.md) | Source datasets and definitions |
+| [HLD Architecture](docs/03_HLD_Architecture.md) | High-level architecture |
+| [Data Flow](docs/04_Data_Flow_Diagram.md) | End-to-end data movement |
+| [Data Model](docs/05_Data_Model_Star_Schema.md) | Dimensional model |
+| [Source-to-Target Mapping](docs/06_Source_to_Target_Mapping.md) | Transformation mapping |
+| [ETL Design](docs/07_Pipeline_ETL_Design.md) | Ingestion and transformation |
+| [Data Quality](docs/08_Data_Quality_Validation.md) | Validation framework |
+| [Data Lineage](docs/09_Data_Lineage.md) | Source-to-report lineage |
+| [Monitoring & Error Handling](docs/10_Monitoring_Error_Handling.md) | Operational design |
+| [Deployment Runbook](docs/11_Deployment_Runbook.md) | Deployment procedures |
+
+---
+
+## 📈 Project Status
+
+**Phase 1 — Project Foundation**
+
+- [x] Repository initialized
+- [x] Project structure created
+- [x] Python virtual environment configured
+- [x] Documentation structure created
+- [x] Git branching strategy established
+- [ ] Source data profiling
+- [ ] Azure ADLS Gen2 implementation
+- [ ] Snowflake implementation
+- [ ] Python ingestion pipeline
+- [ ] Data quality framework
+- [ ] Monitoring
+- [ ] Power BI dashboards
+- [ ] Deployment
+
+---
+
+## 🌿 Development Workflow
 
 ```text
 main
-  │
-  └── onkar
-       │
-       └── Pull Request → main
+  ↑
+Pull Request
+  ↑
+onkar
+  ↑
+Development
 ```
 
-Development is performed on the `onkar` branch while `main` remains the stable branch.
+`main` is maintained as the stable branch. Development work is performed on feature/developer branches and merged through Pull Requests.
 
 ---
 
 ## 👨‍💻 Author
 
-**Onkar Jadhav**
-
+**Onkar Jadhav**  
 Aspiring Data Engineer
 
 **SQL • Snowflake • Azure • Python • Data Engineering**
+
+---
+
+> ❄️ **Build. Validate. Monitor. Deliver.**
+>
+> A portfolio project focused on practical Data Engineering rather than dashboard-only development.
