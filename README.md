@@ -2,89 +2,46 @@
 
 ### ❄️ Snowflake-Centric Data Engineering Project
 
-An end-to-end Data Engineering platform built using **Snowflake, Azure ADLS Gen2, Python, SQL, Linux, and Power BI**, using real Divvy mobility data.
+An end-to-end Data Engineering platform for urban mobility analytics, built around **Snowflake** with **Azure ADLS Gen2, Python, SQL, Linux, and Power BI**.
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Solution Architecture
 
 ![Project Architecture](assets/project_architecture.png)
 
-**Divvy Data → Azure ADLS Gen2 → Snowflake → Data Marts → Power BI**
+**Divvy Historical Data + GBFS Feeds → Azure ADLS Gen2 → Snowflake → Data Marts → Power BI**
 
 ---
 
-## 🔄 Data Pipeline
+## ❄️ Snowflake-Centric Pipeline
 
-![Data Pipeline](assets/data_flow.png)
+```text
+Sources
+   ↓
+Azure ADLS Gen2
+   ↓
+Snowflake RAW
+   ↓
+STAGING
+   ↓
+CORE
+   ↓
+DATA MARTS
+   ↓
+Power BI
+```
 
-The pipeline combines **historical trip data** with **GBFS mobility feeds** and processes them through the Snowflake data platform.
-
----
-
-## ❄️ Snowflake Data Platform
-
-![Snowflake Architecture](assets/snowflake_layers.png)
-
-`RAW → STAGING → CORE → DATA MARTS`
-
-Snowflake is the central platform for ingestion, transformation, modeling, and analytics.
-
----
-
-## 🗄️ Data Model
-
-![Star Schema](assets/star_schema.png)
-
-Dimensional modeling supports trip, station, fleet, and rider analytics.
-
----
-
-## ☁️ Azure Data Lake
-
-![Azure ADLS](assets/adls_structure.png)
-
-Azure **ADLS Gen2** acts as the cloud landing layer between external data sources and Snowflake.
-
----
-
-## 🐍 Python Ingestion
-
-![Python GBFS Ingestion](assets/python_ingestion.png)
-
-Python handles GBFS API extraction, JSON processing, validation, logging, and ingestion preparation.
-
----
-
-## 🧪 Data Quality
-
-![Data Quality](assets/data_quality.png)
-
-Validation covers:
-
-- Null values
-- Duplicates
-- Invalid timestamps
-- Invalid trip durations
-- Invalid station references
-- Malformed JSON
-
----
-
-## 📊 Power BI
-
-![Power BI Dashboard](assets/powerbi_dashboard.png)
-
-**Trips • Stations • Fleet • Riders**
+Snowflake is the central platform for **ingestion, transformation, data modeling, quality, and analytics**.
 
 ---
 
 ## 🧰 Technology Stack
 
-| Area | Technology |
+| Layer | Technology |
 |---|---|
-| Cloud | Azure |
-| Storage | ADLS Gen2 |
+| Cloud | Microsoft Azure |
+| Storage | Azure ADLS Gen2 |
 | Data Warehouse | Snowflake |
 | Transformation | SQL / ELT |
 | Programming | Python |
@@ -94,25 +51,47 @@ Validation covers:
 
 ---
 
-## 📚 Documentation
+## ⚙️ Key Data Engineering Concepts
 
-| Document | Description |
-|---|---|
-| [Business Requirements](docs/01_Business_Requirements.md) | Business objectives |
-| [Source & Data Dictionary](docs/02_Source_and_Data_Dictionary.md) | Source data |
-| [Architecture](docs/03_HLD_Architecture.md) | Technical architecture |
-| [Data Flow](docs/04_Data_Flow_Diagram.md) | End-to-end pipeline |
-| [Data Model](docs/05_Data_Model_Star_Schema.md) | Star schema |
-| [Source-to-Target Mapping](docs/06_Source_to_Target_Mapping.md) | Transformation mapping |
-| [ETL Design](docs/07_Pipeline_ETL_Design.md) | Pipeline implementation |
-| [Data Quality](docs/08_Data_Quality_Validation.md) | Validation framework |
-| [Data Lineage](docs/09_Data_Lineage.md) | Source-to-report lineage |
-| [Monitoring](docs/10_Monitoring_Error_Handling.md) | Operational monitoring |
-| [Deployment](docs/11_Deployment_Runbook.md) | Deployment process |
+- Batch & incremental data ingestion
+- Snowflake layered architecture
+- Semi-structured JSON processing
+- Dimensional / Star Schema modeling
+- Data quality validation
+- Data lineage & auditability
+- Monitoring & error handling
+- Python API ingestion
+- Cloud data lake integration
 
 ---
 
-## 🌿 Development
+## 📚 Project Documentation
+
+| Documentation | Focus |
+|---|---|
+| [Business Requirements](docs/01_Business_Requirements.md) | Business objectives & scope |
+| [Source & Data Dictionary](docs/02_Source_and_Data_Dictionary.md) | Source data & definitions |
+| [Architecture](docs/03_HLD_Architecture.md) | High-level architecture |
+| [Data Flow](docs/04_Data_Flow_Diagram.md) | End-to-end data movement |
+| [Data Model](docs/05_Data_Model_Star_Schema.md) | Facts & dimensions |
+| [Source-to-Target Mapping](docs/06_Source_to_Target_Mapping.md) | Transformation mapping |
+| [Pipeline / ETL Design](docs/07_Pipeline_ETL_Design.md) | Ingestion & ELT design |
+| [Data Quality](docs/08_Data_Quality_Validation.md) | Validation framework |
+| [Data Lineage](docs/09_Data_Lineage.md) | Source-to-report lineage |
+| [Monitoring & Error Handling](docs/10_Monitoring_Error_Handling.md) | Operational monitoring |
+| [Deployment Runbook](docs/11_Deployment_Runbook.md) | Deployment process |
+
+---
+
+## 🚧 Project Status
+
+**Phase 1 — Repository & Development Environment Setup**
+
+Next: **Source acquisition → profiling → Azure ADLS Gen2 → Snowflake ingestion → transformations → data marts → data quality → Power BI**
+
+---
+
+## 🌿 Development Workflow
 
 ```text
 main
@@ -122,7 +101,7 @@ main
        └── Pull Request → main
 ```
 
-Development is performed on the `onkar` branch while `main` remains the stable branch.
+`main` is kept as the stable branch while development takes place on `onkar`.
 
 ---
 
