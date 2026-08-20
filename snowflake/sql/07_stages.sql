@@ -16,6 +16,7 @@
 -- ============================================================
 
 USE DATABASE DIVVY_DB;
+USE SCHEMA RAW;
 
 
 -- ============================================================
@@ -28,16 +29,35 @@ CREATE STAGE IF NOT EXISTS DIVVY_DB.RAW.STG_HISTORICAL_TRIPS
 
 
 -- ============================================================
--- 07.2 — GBFS STAGE
+-- 07.2 — GBFS FILE FORMAT
 -- ============================================================
--- Used for recurring GBFS JSON snapshots.
+-- GBFS is semi-structured JSON.
+-- The complete JSON payload will be preserved as VARIANT
+-- in RAW_GBFS.
+
+CREATE FILE FORMAT IF NOT EXISTS DIVVY_DB.RAW.FF_GBFS_JSON
+    TYPE = JSON
+    STRIP_OUTER_ARRAY = FALSE;
+
+
+-- ============================================================
+-- 07.3 — GBFS STAGE
+-- ============================================================
+-- Azure URL / STORAGE_INTEGRATION will be configured later.
 
 CREATE STAGE IF NOT EXISTS DIVVY_DB.RAW.STG_GBFS
     FILE_FORMAT = DIVVY_DB.RAW.FF_GBFS_JSON;
 
 
 -- ============================================================
--- 07.3 — VERIFY STAGES
+-- 07.4 — VERIFY STAGES
 -- ============================================================
 
 SHOW STAGES IN SCHEMA DIVVY_DB.RAW;
+
+
+-- ============================================================
+-- 07.5 — VERIFY FILE FORMATS
+-- ============================================================
+
+SHOW FILE FORMATS IN SCHEMA DIVVY_DB.RAW;

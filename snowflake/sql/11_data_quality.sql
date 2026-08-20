@@ -67,30 +67,15 @@ FROM DIVVY_DB.STAGING.STG_TRIPS
 WHERE TRIP_DURATION_MINUTES IS NULL
    OR TRIP_DURATION_MINUTES < 0;
 
-
 -- ============================================================
--- 11.5 — STATION VALIDITY
+-- 11.5 — STATION COMPLETENESS
 -- ============================================================
 
 SELECT
-    COUNT(*) AS INVALID_STATION_ROWS
+    COUNT(*) AS NULL_STATION_ROWS
 FROM DIVVY_DB.STAGING.STG_TRIPS
 WHERE START_STATION_ID IS NULL
    OR END_STATION_ID IS NULL;
-
-
--- ============================================================
--- 11.6 — GEO-COORDINATE VALIDITY
--- ============================================================
-
-SELECT
-    COUNT(*) AS INVALID_START_COORDINATES
-FROM DIVVY_DB.STAGING.STG_TRIPS
-WHERE START_LAT IS NOT NULL
-  AND (START_LAT < -90 OR START_LAT > 90)
-   OR START_LNG IS NOT NULL
-  AND (START_LNG < -180 OR START_LNG > 180);
-
 
 -- ============================================================
 -- 11.7 — CORE FACT DUPLICATE CHECK
@@ -105,7 +90,23 @@ GROUP BY RIDE_ID
 HAVING COUNT(*) > 1
 ORDER BY RECORD_COUNT DESC;
 
+-- ============================================================
+-- 11.6 — GEO-COORDINATE VALIDITY
+-- ============================================================
 
+SELECT
+    COUNT(*) AS INVALID_START_COORDINATES
+FROM DIVVY_DB.STAGING.STG_TRIPS
+WHERE
+    (
+        START_LAT IS NOT NULL
+            AND (START_LAT < -90 OR START_LAT > 90)
+        )
+   OR
+    (
+        START_LNG IS NOT NULL
+            AND (START_LNG < -180 OR START_LNG > 180)
+        );
 -- ============================================================
 -- 11.8 — REFERENTIAL INTEGRITY
 -- ============================================================
