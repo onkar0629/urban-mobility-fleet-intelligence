@@ -65,17 +65,20 @@ The project focuses on practical Data Engineering concepts:
 
 ## 📚 Documentation
 
-Detailed engineering documentation:
+The complete engineering documentation is maintained in the [`docs/`](docs/) directory:
 
-- [Business Requirements](docs/01_Business_Requirements.md)
-- [Architecture](docs/03_HLD_Architecture.md)
-- [Data Flow](docs/04_Data_Flow_Diagram.md)
-- [Data Model](docs/05_Data_Model_Star_Schema.md)
-- [ETL Design](docs/07_Pipeline_ETL_Design.md)
-- [Data Quality](docs/08_Data_Quality_Validation.md)
-- [Data Lineage](docs/09_Data_Lineage.md)
-- [Monitoring](docs/10_Monitoring_Error_Handling.md)
-- [Deployment](docs/11_Deployment_Runbook.md)
+- [01 — Business Requirements](docs/01_Business_Requirements.md)
+- [02 — Source & Data Dictionary](docs/02_Source_and_Data_Dictionary.md)
+- [03 — HLD / Architecture](docs/03_HLD_Architecture.md)
+- [04 — Data Flow Diagram](docs/04_Data_Flow_Diagram.md)
+- [05 — Data Model / Star Schema](docs/05_Data_Model_Star_Schema.md)
+- [06 — Source-to-Target Mapping](docs/06_Source_to_Target_Mapping.md)
+- [07 — Pipeline / ETL Design](docs/07_Pipeline_ETL_Design.md)
+- [08 — Data Quality & Validation](docs/08_Data_Quality_Validation.md)
+- [09 — Data Lineage](docs/09_Data_Lineage.md)
+- [10 — Monitoring & Error Handling](docs/10_Monitoring_Error_Handling.md)
+- [11 — Deployment / Runbook](docs/11_Deployment_Runbook.md)
+- [12 — Main Documentation README](docs/12_Main_README.md)
 
 ---
 
