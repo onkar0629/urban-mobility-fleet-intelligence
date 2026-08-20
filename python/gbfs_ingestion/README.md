@@ -178,15 +178,3 @@ MART
   ↓
 Power BI
 ```
-
-## Status
-
-| Component | Status |
-|---|---|
-| GBFS discovery | ✅ Complete |
-| Feed extraction | ✅ Complete |
-| Validation | ✅ Complete |
-| JSON snapshot generation | ✅ Complete |
-| Ingestion metadata | ✅ Complete |
-| ADLS Gen2 upload | ⏸️ Pending Azure access |
-| Snowflake ingestion | ⏸️ Pending ADLS |
