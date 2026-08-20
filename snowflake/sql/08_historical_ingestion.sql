@@ -1,0 +1,30 @@
+-- ============================================================
+-- URBAN MOBILITY & FLEET INTELLIGENCE
+-- 08 — HISTORICAL INGESTION
+-- ============================================================
+-- Azure-dependent commands remain commented until ADLS is configured.
+
+USE DATABASE DIVVY_DB;
+USE SCHEMA RAW;
+
+SHOW STAGES IN SCHEMA DIVVY_DB.RAW;
+
+-- LIST @DIVVY_DB.RAW.STG_HISTORICAL_TRIPS;
+
+-- COPY INTO DIVVY_DB.RAW.RAW_TRIPS
+-- FROM @DIVVY_DB.RAW.STG_HISTORICAL_TRIPS
+-- FILE_FORMAT = (FORMAT_NAME = DIVVY_DB.RAW.FF_DIVVY_TRIPS)
+-- PATTERN = '.*\\.csv'
+-- ON_ERROR = 'ABORT_STATEMENT';
+
+-- SELECT COUNT(*) AS RAW_TRIPS_COUNT
+-- FROM DIVVY_DB.RAW.RAW_TRIPS;
+
+-- SELECT *
+-- FROM TABLE(
+--     INFORMATION_SCHEMA.COPY_HISTORY(
+--         TABLE_NAME => 'DIVVY_DB.RAW.RAW_TRIPS',
+--         START_TIME => DATEADD('day', -1, CURRENT_TIMESTAMP())
+--     )
+-- )
+-- ORDER BY LAST_LOAD_TIME DESC;
