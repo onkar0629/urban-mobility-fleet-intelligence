@@ -1,0 +1,78 @@
+Last login: Tue Aug 18 06:11:39 on ttys001
+onkar@Glitch404 ~ % mkdir urban-mobility-fleet-intelligence
+cd urban-mobility-fleet-intelligence
+onkar@Glitch404 urban-mobility-fleet-intelligence % pwd
+/Users/onkar/urban-mobility-fleet-intelligence
+onkar@Glitch404 urban-mobility-fleet-intelligence % git init
+Initialized empty Git repository in /Users/onkar/urban-mobility-fleet-intelligence/.git/
+onkar@Glitch404 urban-mobility-fleet-intelligence % git status
+On branch main
+
+No commits yet
+
+nothing to commit (create/copy files and use "git add" to track)
+onkar@Glitch404 urban-mobility-fleet-intelligence % mkdir -p docs \
+sql/database \
+sql/stages \
+sql/raw \
+sql/staging \
+sql/core \
+sql/marts \
+sql/streams \
+sql/tasks \
+sql/audit \
+python/gbfs_ingestion \
+python/validation \
+python/utils \
+linux \
+powerbi \
+tests \
+assets
+onkar@Glitch404 urban-mobility-fleet-intelligence % find . -type d | sort
+.
+./.git
+./.git/hooks
+./.git/info
+./.git/objects
+./.git/objects/info
+./.git/objects/pack
+./.git/refs
+./.git/refs/heads
+./.git/refs/tags
+./assets
+./docs
+./linux
+./powerbi
+./python
+./python/gbfs_ingestion
+./python/utils
+./python/validation
+./sql
+./sql/audit
+./sql/core
+./sql/database
+./sql/marts
+./sql/raw
+./sql/stages
+./sql/staging
+./sql/streams
+./sql/tasks
+./tests
+onkar@Glitch404 urban-mobility-fleet-intelligence % touch .gitignore
+onkar@Glitch404 urban-mobility-fleet-intelligence % mkdir -p snowflake/sql
+onkar@Glitch404 urban-mobility-fleet-intelligence % touch python/gbfs_ingestion/requirements.txt
+onkar@Glitch404 urban-mobility-fleet-intelligence % touch python/gbfs_ingestion/config.py
+onkar@Glitch404 urban-mobility-fleet-intelligence % touch python/gbfs_ingestion/gbfs_client.py
+onkar@Glitch404 urban-mobility-fleet-intelligence % touch python/gbfs_ingestion/validator.py
+onkar@Glitch404 urban-mobility-fleet-intelligence % touch python/gbfs_ingestion/file_writer.py
+onkar@Glitch404 urban-mobility-fleet-intelligence % touch python/gbfs_ingestion/main.py
+onkar@Glitch404 urban-mobility-fleet-intelligence % cd python/gbfs_ingestion
+onkar@Glitch404 gbfs_ingestion % python3 -m venv .venv
+onkar@Glitch404 gbfs_ingestion % ls
+config.py		file_writer.py		gbfs_client.py		main.py			output			requirements.txt	validator.py
+onkar@Glitch404 gbfs_ingestion % cd..
+zsh: command not found: cd..
+onkar@Glitch404 gbfs_ingestion % cd ..
+onkar@Glitch404 python % cd ..
+onkar@Glitch404 urban-mobility-fleet-intelligence % touch python/gbfs_ingestion/README.md
+onkar@Glitch404 urban-mobility-fleet-intelligence % 
