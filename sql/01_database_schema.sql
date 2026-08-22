@@ -2,9 +2,11 @@
 -- URBAN MOBILITY & FLEET INTELLIGENCE
 -- 01 — DATABASE & SCHEMA SETUP
 -- ============================================================
--- Primary Platform : Snowflake
--- Cloud Landing    : Azure Data Lake Storage Gen2
+-- Execution order: 01 → 11
+-- Primary platform : Snowflake
+-- Cloud landing    : Azure Data Lake Storage Gen2
 -- Architecture     : RAW → STAGING → CORE → MART
+-- Operational      : AUDIT
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS DIVVY_DB;

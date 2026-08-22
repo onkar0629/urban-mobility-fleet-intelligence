@@ -2,9 +2,8 @@
 -- URBAN MOBILITY & FLEET INTELLIGENCE
 -- 02 — FILE FORMAT SETUP
 -- ============================================================
--- Formats:
---   Historical Divvy trips → CSV
---   Divvy GBFS snapshots   → JSON
+-- Historical Divvy trips → CSV
+-- Divvy GBFS snapshots   → JSON
 -- ============================================================
 
 USE DATABASE DIVVY_DB;

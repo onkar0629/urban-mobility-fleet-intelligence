@@ -2,9 +2,9 @@
 -- URBAN MOBILITY & FLEET INTELLIGENCE
 -- 03 — RAW TABLES
 -- ============================================================
--- RAW preserves source-aligned data and ingestion traceability.
--- Historical trips are typed to match the verified CSV source.
--- GBFS payloads are preserved as VARIANT.
+-- RAW preserves source-aligned values and ingestion metadata.
+-- Historical trips remain close to the verified CSV structure.
+-- GBFS JSON is preserved as VARIANT for downstream FLATTEN().
 -- ============================================================
 
 USE DATABASE DIVVY_DB;
