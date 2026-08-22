@@ -53,6 +53,8 @@ Add the measures from:
 powerbi/measures.dax
 ```
 
+The complete visual-by-visual build and configuration is in [`DASHBOARD_BUILD.md`](DASHBOARD_BUILD.md).
+
 ## Step 5 — Build Pages
 
 ### 1. Mobility Overview

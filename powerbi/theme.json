@@ -1,0 +1,23 @@
+{
+  "name": "Urban Mobility Fleet Intelligence",
+  "dataColors": ["#0B6E4F", "#149B7E", "#F4A261", "#E76F51", "#457B9D", "#8AB17D", "#6D597A", "#E9C46A"],
+  "background": "#F7FAF9",
+  "foreground": "#1F2933",
+  "tableAccent": "#0B6E4F",
+  "visualStyles": {
+    "*": {
+      "*": {
+        "title": [{"show": true, "fontFamily": "Segoe UI Semibold", "color": {"solid": {"color": "#1F2933"}}, "fontSize": 12}],
+        "background": [{"show": true, "color": {"solid": {"color": "#FFFFFF"}}, "transparency": 0}],
+        "border": [{"show": true, "color": {"solid": {"color": "#D9E2E7"}}}],
+        "visualHeader": [{"show": false}]
+      }
+    },
+    "card": {
+      "*": {
+        "calloutValue": [{"fontFamily": "Segoe UI Semibold", "color": {"solid": {"color": "#0B6E4F"}}, "fontSize": 26}],
+        "categoryLabels": [{"fontFamily": "Segoe UI", "color": {"solid": {"color": "#52616B"}}, "fontSize": 10}]
+      }
+    }
+  }
+}

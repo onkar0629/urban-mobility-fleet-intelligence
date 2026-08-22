@@ -1,5 +1,5 @@
--- Urban Mobility & Fleet Intelligence
--- Suggested Power BI measures
+// Urban Mobility & Fleet Intelligence
+// Create these measures in a dedicated table named _Measures.
 
 Total Trips =
 SUM(VW_POWERBI_OPERATIONS[TOTAL_TRIPS])
@@ -16,8 +16,15 @@ DIVIDE([Member Trips], [Total Trips])
 Casual Trip Share =
 DIVIDE([Casual Trips], [Total Trips])
 
-Average Trip Duration =
-AVERAGE(VW_POWERBI_OPERATIONS[AVG_TRIP_DURATION_MINUTES])
+Average Trip Duration (Minutes) =
+DIVIDE(
+    SUMX(
+        VW_POWERBI_OPERATIONS,
+        VW_POWERBI_OPERATIONS[TOTAL_TRIPS]
+            * VW_POWERBI_OPERATIONS[AVG_TRIP_DURATION_MINUTES]
+    ),
+    [Total Trips]
+)
 
 Active Stations =
 MAX(VW_POWERBI_OPERATIONS[TOTAL_ACTIVE_STATIONS])
@@ -34,6 +41,16 @@ SUM(VW_POWERBI_STATION[TRIP_ORIGIN_COUNT])
 Destination Trips =
 SUM(VW_POWERBI_STATION[TRIP_DESTINATION_COUNT])
 
+Average Station Trip Duration (Minutes) =
+DIVIDE(
+    SUMX(
+        VW_POWERBI_STATION,
+        VW_POWERBI_STATION[TOTAL_STATION_TRIPS]
+            * VW_POWERBI_STATION[AVG_TRIP_DURATION_MINUTES]
+    ),
+    [Origin Trips]
+)
+
 Average Vehicles Available =
 AVERAGE(VW_POWERBI_STATION[AVG_VEHICLES_AVAILABLE])
 
@@ -43,10 +60,20 @@ AVERAGE(VW_POWERBI_STATION[AVG_DOCKS_AVAILABLE])
 Rider Trips =
 SUM(VW_POWERBI_RIDER[TOTAL_TRIPS])
 
-Unique Start Stations =
+Average Rider Trip Duration (Minutes) =
+DIVIDE(
+    SUMX(
+        VW_POWERBI_RIDER,
+        VW_POWERBI_RIDER[TOTAL_TRIPS]
+            * VW_POWERBI_RIDER[AVG_TRIP_DURATION_MINUTES]
+    ),
+    [Rider Trips]
+)
+
+Daily Unique Start Stations =
 SUM(VW_POWERBI_RIDER[UNIQUE_START_STATIONS])
 
-Unique End Stations =
+Daily Unique End Stations =
 SUM(VW_POWERBI_RIDER[UNIQUE_END_STATIONS])
 
 Fleet Vehicle Count =
