@@ -40,8 +40,12 @@ LIST @DIVVY_DB.RAW.STG_HISTORICAL_TRIPS;
 -- ============================================================
 -- 08.3 — START AUDIT RUN
 -- ============================================================
+-- A temporary context table is used instead of a session SET
+-- variable so the script runs reliably from DataGrip.
 
-SET HISTORICAL_RUN_ID = UUID_STRING();
+CREATE OR REPLACE TEMPORARY TABLE DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN
+AS
+SELECT UUID_STRING() AS PIPELINE_RUN_ID;
 
 INSERT INTO DIVVY_DB.AUDIT.PIPELINE_RUN
 (
@@ -54,9 +58,8 @@ INSERT INTO DIVVY_DB.AUDIT.PIPELINE_RUN
     RECORDS_PROCESSED,
     RECORDS_REJECTED
 )
-VALUES
-(
-    $HISTORICAL_RUN_ID,
+SELECT
+    PIPELINE_RUN_ID,
     'HISTORICAL_TRIPS',
     'DIVVY',
     NULL,
@@ -64,7 +67,7 @@ VALUES
     'RUNNING',
     0,
     0
-);
+FROM DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN;
 
 -- ============================================================
 -- 08.4 — COPY ADLS → RAW
@@ -139,12 +142,26 @@ CALL DIVVY_DB.MART.SP_REFRESH_MARTS();
 -- 08.8 — COMPLETE AUDIT RUN
 -- ============================================================
 
-UPDATE DIVVY_DB.AUDIT.PIPELINE_RUN
+UPDATE DIVVY_DB.AUDIT.PIPELINE_RUN P
 SET
     END_TIME = CURRENT_TIMESTAMP(),
     STATUS = 'SUCCESS',
-    RECORDS_PROCESSED = (SELECT COUNT(*) FROM DIVVY_DB.CORE.FACT_TRIP)
-WHERE PIPELINE_RUN_ID = $HISTORICAL_RUN_ID;
+    RECORDS_PROCESSED =
+    (
+        SELECT COUNT(*)
+        FROM DIVVY_DB.STAGING.STG_TRIPS
+        WHERE IS_VALID_TIMESTAMP
+          AND IS_VALID_DURATION
+          AND IS_VALID_STATION
+          AND NOT IS_DUPLICATE
+    )
+WHERE P.PIPELINE_RUN_ID =
+(
+    SELECT PIPELINE_RUN_ID
+    FROM DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN
+);
+
+DROP TABLE IF EXISTS DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN;
 
 -- ============================================================
 -- 08.9 — VALIDATION
