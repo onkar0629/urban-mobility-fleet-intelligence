@@ -1,8 +1,10 @@
 -- ============================================================
 -- URBAN MOBILITY & FLEET INTELLIGENCE
--- 11 — QUALITY, AUDIT & VALIDATION
+-- 11 — DATA QUALITY
 -- ============================================================
--- Final operational checks across RAW, STAGING, CORE and MART.
+-- Reusable data-quality checks across RAW, STAGING and CORE.
+-- Operational monitoring is handled by File 12.
+-- Final end-to-end validation is handled by File 13.
 -- ============================================================
 
 USE DATABASE DIVVY_DB;
@@ -25,189 +27,225 @@ CREATE TABLE IF NOT EXISTS DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
 );
 
 -- ============================================================
--- 11.2 — REPEATABLE DATA QUALITY RUN
+-- 11.2 — RAW TRIP CHECKS
 -- ============================================================
 
 INSERT INTO DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
 (
-    CHECK_ID,
-    CHECK_NAME,
-    LAYER,
-    OBJECT_NAME,
-    CHECK_TIME,
-    STATUS,
-    RECORDS_CHECKED,
-    RECORDS_FAILED,
-    DETAILS
+    CHECK_ID, CHECK_NAME, LAYER, OBJECT_NAME, CHECK_TIME,
+    STATUS, RECORDS_CHECKED, RECORDS_FAILED, DETAILS
 )
-SELECT UUID_STRING(), 'RAW_TRIPS_RIDE_ID_NOT_NULL', 'RAW', 'RAW_TRIPS', CURRENT_TIMESTAMP(),
-       IFF(FAILURES = 0, 'PASS', 'FAIL'), TOTAL_ROWS, FAILURES,
-       'RIDE_ID must be populated'
-FROM
-(
-    SELECT COUNT(*) TOTAL_ROWS, COUNT_IF(RIDE_ID IS NULL) FAILURES
-    FROM DIVVY_DB.RAW.RAW_TRIPS
-)
-UNION ALL
-SELECT UUID_STRING(), 'RAW_TRIPS_TIMESTAMP_VALIDITY', 'RAW', 'RAW_TRIPS', CURRENT_TIMESTAMP(),
-       IFF(FAILURES = 0, 'PASS', 'FAIL'), TOTAL_ROWS, FAILURES,
-       'STARTED_AT and ENDED_AT must be present and ordered'
-FROM
-(
-    SELECT COUNT(*) TOTAL_ROWS,
-           COUNT_IF(STARTED_AT IS NULL OR ENDED_AT IS NULL OR ENDED_AT < STARTED_AT) FAILURES
-    FROM DIVVY_DB.RAW.RAW_TRIPS
-)
-UNION ALL
-SELECT UUID_STRING(), 'RAW_TRIPS_COORDINATE_RANGE', 'RAW', 'RAW_TRIPS', CURRENT_TIMESTAMP(),
-       IFF(FAILURES = 0, 'PASS', 'FAIL'), TOTAL_ROWS, FAILURES,
-       'Latitude must be -90..90 and longitude -180..180'
-FROM
-(
-    SELECT COUNT(*) TOTAL_ROWS,
-           COUNT_IF(
-               (START_LAT IS NOT NULL AND (START_LAT < -90 OR START_LAT > 90))
-               OR (START_LNG IS NOT NULL AND (START_LNG < -180 OR START_LNG > 180))
-               OR (END_LAT IS NOT NULL AND (END_LAT < -90 OR END_LAT > 90))
-               OR (END_LNG IS NOT NULL AND (END_LNG < -180 OR END_LNG > 180))
-           ) FAILURES
-    FROM DIVVY_DB.RAW.RAW_TRIPS
-)
-UNION ALL
-SELECT UUID_STRING(), 'STAGING_VALID_TRIPS', 'STAGING', 'STG_TRIPS', CURRENT_TIMESTAMP(),
-       IFF(FAILURES = 0, 'PASS', 'FAIL'), TOTAL_ROWS, FAILURES,
-       'Invalid timestamp, duration, station or duplicate flags'
-FROM
-(
-    SELECT COUNT(*) TOTAL_ROWS,
-           COUNT_IF(
-               NOT IS_VALID_TIMESTAMP
-               OR NOT IS_VALID_DURATION
-               OR NOT IS_VALID_STATION
-               OR IS_DUPLICATE
-           ) FAILURES
-    FROM DIVVY_DB.STAGING.STG_TRIPS
-)
-UNION ALL
-SELECT UUID_STRING(), 'CORE_TRIP_RECONCILIATION', 'CORE', 'FACT_TRIP', CURRENT_TIMESTAMP(),
-       IFF(FAILURES = 0, 'PASS', 'FAIL'), TOTAL_ROWS, FAILURES,
-       'Valid staging trips should reconcile to CORE fact trips'
+SELECT
+    UUID_STRING(),
+    'RAW_TRIPS_RIDE_ID_NOT_NULL',
+    'RAW',
+    'RAW_TRIPS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    'RIDE_ID must be populated'
 FROM
 (
     SELECT
-        (SELECT COUNT(*)
-         FROM DIVVY_DB.STAGING.STG_TRIPS
-         WHERE IS_VALID_TIMESTAMP AND IS_VALID_DURATION AND IS_VALID_STATION AND NOT IS_DUPLICATE) AS TOTAL_ROWS,
-        ABS(
-            (SELECT COUNT(*)
-             FROM DIVVY_DB.STAGING.STG_TRIPS
-             WHERE IS_VALID_TIMESTAMP AND IS_VALID_DURATION AND IS_VALID_STATION AND NOT IS_DUPLICATE)
-            -
-            (SELECT COUNT(*) FROM DIVVY_DB.CORE.FACT_TRIP)
-        ) AS FAILURES
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(RIDE_ID IS NULL) AS FAILURES
+    FROM DIVVY_DB.RAW.RAW_TRIPS
 )
+
 UNION ALL
-SELECT UUID_STRING(), 'GBFS_RAW_JSON_PRESENT', 'RAW', 'RAW_GBFS', CURRENT_TIMESTAMP(),
-       IFF(FAILURES = 0, 'PASS', 'FAIL'), TOTAL_ROWS, FAILURES,
-       'RAW_GBFS must preserve a JSON VARIANT payload'
+
+SELECT
+    UUID_STRING(),
+    'RAW_TRIPS_TIMESTAMP_VALIDITY',
+    'RAW',
+    'RAW_TRIPS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    'STARTED_AT and ENDED_AT must be present and ordered'
 FROM
 (
-    SELECT COUNT(*) TOTAL_ROWS, COUNT_IF(RAW_JSON IS NULL) FAILURES
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(
+            STARTED_AT IS NULL
+            OR ENDED_AT IS NULL
+            OR ENDED_AT < STARTED_AT
+        ) AS FAILURES
+    FROM DIVVY_DB.RAW.RAW_TRIPS
+)
+
+UNION ALL
+
+SELECT
+    UUID_STRING(),
+    'RAW_TRIPS_COORDINATE_RANGE',
+    'RAW',
+    'RAW_TRIPS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    'Latitude must be -90..90 and longitude -180..180'
+FROM
+(
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(
+            (START_LAT IS NOT NULL AND (START_LAT < -90 OR START_LAT > 90))
+            OR (START_LNG IS NOT NULL AND (START_LNG < -180 OR START_LNG > 180))
+            OR (END_LAT IS NOT NULL AND (END_LAT < -90 OR END_LAT > 90))
+            OR (END_LNG IS NOT NULL AND (END_LNG < -180 OR END_LNG > 180))
+        ) AS FAILURES
+    FROM DIVVY_DB.RAW.RAW_TRIPS
+)
+
+UNION ALL
+
+SELECT
+    UUID_STRING(),
+    'RAW_GBFS_JSON_PRESENT',
+    'RAW',
+    'RAW_GBFS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    'RAW_GBFS must preserve a JSON VARIANT payload'
+FROM
+(
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(RAW_JSON IS NULL) AS FAILURES
     FROM DIVVY_DB.RAW.RAW_GBFS
 );
 
 -- ============================================================
--- 11.3 — OBJECT VALIDATION
+-- 11.3 — STAGING CHECKS
 -- ============================================================
 
-SHOW TABLES IN SCHEMA DIVVY_DB.RAW;
-SHOW TABLES IN SCHEMA DIVVY_DB.STAGING;
-SHOW TABLES IN SCHEMA DIVVY_DB.CORE;
-SHOW TABLES IN SCHEMA DIVVY_DB.MART;
-SHOW TABLES IN SCHEMA DIVVY_DB.AUDIT;
-
-SHOW PIPES IN SCHEMA DIVVY_DB.RAW;
-SHOW STREAMS IN SCHEMA DIVVY_DB.RAW;
-SHOW TASKS IN SCHEMA DIVVY_DB.AUDIT;
-
--- ============================================================
--- 11.4 — ROW COUNT VALIDATION
--- ============================================================
-
-SELECT COUNT(*) AS RAW_TRIPS_COUNT
-FROM DIVVY_DB.RAW.RAW_TRIPS;
-
-SELECT COUNT(*) AS STG_TRIPS_COUNT
-FROM DIVVY_DB.STAGING.STG_TRIPS;
-
-SELECT COUNT(*) AS FACT_TRIP_COUNT
-FROM DIVVY_DB.CORE.FACT_TRIP;
-
-SELECT COUNT(*) AS RAW_GBFS_COUNT
-FROM DIVVY_DB.RAW.RAW_GBFS;
-
-SELECT COUNT(*) AS FACT_STATION_STATUS_COUNT
-FROM DIVVY_DB.CORE.FACT_STATION_STATUS;
-
-SELECT COUNT(*) AS FACT_VEHICLE_STATUS_COUNT
-FROM DIVVY_DB.CORE.FACT_VEHICLE_STATUS;
-
-SELECT COUNT(*) AS MART_OPERATIONS_COUNT
-FROM DIVVY_DB.MART.MART_OPERATIONS;
-
-SELECT COUNT(*) AS MART_STATION_COUNT
-FROM DIVVY_DB.MART.MART_STATION;
-
-SELECT COUNT(*) AS MART_RIDER_COUNT
-FROM DIVVY_DB.MART.MART_RIDER;
-
-SELECT COUNT(*) AS MART_FLEET_COUNT
-FROM DIVVY_DB.MART.MART_FLEET;
+INSERT INTO DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
+(
+    CHECK_ID, CHECK_NAME, LAYER, OBJECT_NAME, CHECK_TIME,
+    STATUS, RECORDS_CHECKED, RECORDS_FAILED, DETAILS
+)
+SELECT
+    UUID_STRING(),
+    'STAGING_VALID_TRIPS',
+    'STAGING',
+    'STG_TRIPS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    'Invalid timestamp, duration, station or duplicate flags'
+FROM
+(
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(
+            NOT IS_VALID_TIMESTAMP
+            OR NOT IS_VALID_DURATION
+            OR NOT IS_VALID_STATION
+            OR IS_DUPLICATE
+        ) AS FAILURES
+    FROM DIVVY_DB.STAGING.STG_TRIPS
+);
 
 -- ============================================================
--- 11.5 — DATA QUALITY RESULTS
+-- 11.4 — CORE RECONCILIATION
 -- ============================================================
+
+INSERT INTO DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
+(
+    CHECK_ID, CHECK_NAME, LAYER, OBJECT_NAME, CHECK_TIME,
+    STATUS, RECORDS_CHECKED, RECORDS_FAILED, DETAILS
+)
+SELECT
+    UUID_STRING(),
+    'CORE_TRIP_RECONCILIATION',
+    'CORE',
+    'FACT_TRIP',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    VALID_STAGING_ROWS,
+    FAILURES,
+    'Valid staging trips should reconcile to CORE fact trips'
+FROM
+(
+    SELECT
+        (
+            SELECT COUNT(*)
+            FROM DIVVY_DB.STAGING.STG_TRIPS
+            WHERE IS_VALID_TIMESTAMP
+              AND IS_VALID_DURATION
+              AND IS_VALID_STATION
+              AND NOT IS_DUPLICATE
+        ) AS VALID_STAGING_ROWS,
+        ABS
+        (
+            (
+                SELECT COUNT(*)
+                FROM DIVVY_DB.STAGING.STG_TRIPS
+                WHERE IS_VALID_TIMESTAMP
+                  AND IS_VALID_DURATION
+                  AND IS_VALID_STATION
+                  AND NOT IS_DUPLICATE
+            )
+            -
+            (
+                SELECT COUNT(*)
+                FROM DIVVY_DB.CORE.FACT_TRIP
+            )
+        ) AS FAILURES
+);
+
+-- ============================================================
+-- 11.5 — CORE FOREIGN-KEY CHECK
+-- ============================================================
+
+INSERT INTO DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
+(
+    CHECK_ID, CHECK_NAME, LAYER, OBJECT_NAME, CHECK_TIME,
+    STATUS, RECORDS_CHECKED, RECORDS_FAILED, DETAILS
+)
+SELECT
+    UUID_STRING(),
+    'CORE_TRIP_KEYS_PRESENT',
+    'CORE',
+    'FACT_TRIP',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    'Valid fact trips should have station and rider dimension keys'
+FROM
+(
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(
+            START_STATION_KEY IS NULL
+            OR END_STATION_KEY IS NULL
+            OR RIDER_KEY IS NULL
+        ) AS FAILURES
+    FROM DIVVY_DB.CORE.FACT_TRIP
+);
+
+-- ============================================================
+-- 11.6 — QUALITY SUMMARY
+-- ============================================================
+
+SELECT
+    STATUS,
+    COUNT(*) AS CHECK_COUNT,
+    SUM(RECORDS_FAILED) AS FAILED_RECORDS
+FROM DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
+GROUP BY STATUS
+ORDER BY STATUS;
 
 SELECT *
 FROM DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
 ORDER BY CHECK_TIME DESC
 LIMIT 50;
-
--- ============================================================
--- 11.6 — PIPELINE AUDIT
--- ============================================================
-
-SELECT *
-FROM DIVVY_DB.AUDIT.PIPELINE_RUN
-ORDER BY START_TIME DESC
-LIMIT 20;
-
--- ============================================================
--- 11.7 — SNOWFLAKE LOAD HISTORY
--- ============================================================
-
-SELECT *
-FROM TABLE
-(
-    INFORMATION_SCHEMA.COPY_HISTORY
-    (
-        TABLE_NAME => 'DIVVY_DB.RAW.RAW_TRIPS',
-        START_TIME => DATEADD('day', -7, CURRENT_TIMESTAMP())
-    )
-)
-ORDER BY LAST_LOAD_TIME DESC;
-
--- ============================================================
--- 11.8 — TASK HISTORY
--- ============================================================
-
-SELECT *
-FROM TABLE
-(
-    INFORMATION_SCHEMA.TASK_HISTORY
-    (
-        TASK_NAME => 'DIVVY_DB.AUDIT.TASK_GBFS_PIPELINE',
-        SCHEDULED_TIME_RANGE_START => DATEADD('day', -7, CURRENT_TIMESTAMP())
-    )
-)
-ORDER BY SCHEDULED_TIME DESC;
