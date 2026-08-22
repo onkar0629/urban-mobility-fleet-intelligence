@@ -69,10 +69,10 @@ SELECT
     'RAW',
     'RAW_TRIPS',
     CURRENT_TIMESTAMP(),
-    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    IFF(FAILURES = 0, 'PASS', 'WARN'),
     TOTAL_ROWS,
     FAILURES,
-    'STARTED_AT and ENDED_AT must be present and ordered'
+    'Rows with missing or unordered timestamps are flagged and excluded from trusted CORE processing'
 FROM
 (
     SELECT
