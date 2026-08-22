@@ -1,0 +1,192 @@
+-- ============================================================
+-- URBAN MOBILITY & FLEET INTELLIGENCE
+-- 13 — FINAL VALIDATION QUERIES
+-- ============================================================
+-- Final read-only validation after all ingestion and ELT steps.
+-- Use this file to demonstrate that RAW → STAGING → CORE → MART
+-- is populated and internally consistent.
+-- ============================================================
+
+USE DATABASE DIVVY_DB;
+
+-- ============================================================
+-- 13.1 — LAYER ROW COUNTS
+-- ============================================================
+
+SELECT 'RAW_TRIPS' AS OBJECT_NAME, COUNT(*) AS ROW_COUNT
+FROM DIVVY_DB.RAW.RAW_TRIPS
+UNION ALL
+SELECT 'RAW_GBFS', COUNT(*)
+FROM DIVVY_DB.RAW.RAW_GBFS
+UNION ALL
+SELECT 'STG_TRIPS', COUNT(*)
+FROM DIVVY_DB.STAGING.STG_TRIPS
+UNION ALL
+SELECT 'STG_STATION_STATUS', COUNT(*)
+FROM DIVVY_DB.STAGING.STG_STATION_STATUS
+UNION ALL
+SELECT 'STG_VEHICLE_STATUS', COUNT(*)
+FROM DIVVY_DB.STAGING.STG_VEHICLE_STATUS
+UNION ALL
+SELECT 'FACT_TRIP', COUNT(*)
+FROM DIVVY_DB.CORE.FACT_TRIP
+UNION ALL
+SELECT 'FACT_STATION_STATUS', COUNT(*)
+FROM DIVVY_DB.CORE.FACT_STATION_STATUS
+UNION ALL
+SELECT 'FACT_VEHICLE_STATUS', COUNT(*)
+FROM DIVVY_DB.CORE.FACT_VEHICLE_STATUS
+UNION ALL
+SELECT 'MART_OPERATIONS', COUNT(*)
+FROM DIVVY_DB.MART.MART_OPERATIONS
+UNION ALL
+SELECT 'MART_STATION', COUNT(*)
+FROM DIVVY_DB.MART.MART_STATION
+UNION ALL
+SELECT 'MART_RIDER', COUNT(*)
+FROM DIVVY_DB.MART.MART_RIDER
+UNION ALL
+SELECT 'MART_FLEET', COUNT(*)
+FROM DIVVY_DB.MART.MART_FLEET
+ORDER BY OBJECT_NAME;
+
+-- ============================================================
+-- 13.2 — HISTORICAL TRIP QUALITY SUMMARY
+-- ============================================================
+
+SELECT
+    COUNT(*) AS TOTAL_STAGING_ROWS,
+    COUNT_IF(IS_VALID_TIMESTAMP) AS VALID_TIMESTAMP_ROWS,
+    COUNT_IF(IS_VALID_DURATION) AS VALID_DURATION_ROWS,
+    COUNT_IF(IS_VALID_STATION) AS VALID_STATION_ROWS,
+    COUNT_IF(IS_DUPLICATE) AS DUPLICATE_ROWS,
+    COUNT_IF(
+        IS_VALID_TIMESTAMP
+        AND IS_VALID_DURATION
+        AND IS_VALID_STATION
+        AND NOT IS_DUPLICATE
+    ) AS VALID_CORE_ELIGIBLE_ROWS
+FROM DIVVY_DB.STAGING.STG_TRIPS;
+
+-- ============================================================
+-- 13.3 — RIDER MIX
+-- ============================================================
+
+SELECT
+    MEMBER_CASUAL,
+    COUNT(*) AS TRIP_COUNT,
+    ROUND(100.0 * COUNT(*) / NULLIF(SUM(COUNT(*)) OVER (), 0), 2) AS PERCENT_OF_TRIPS
+FROM DIVVY_DB.RAW.RAW_TRIPS
+GROUP BY MEMBER_CASUAL
+ORDER BY TRIP_COUNT DESC;
+
+-- ============================================================
+-- 13.4 — DAILY TRIP VOLUME
+-- ============================================================
+
+SELECT
+    START_DATE_KEY AS DATE_KEY,
+    COUNT(*) AS TRIP_COUNT,
+    ROUND(AVG(TRIP_DURATION_MINUTES), 2) AS AVG_TRIP_DURATION_MINUTES
+FROM DIVVY_DB.CORE.FACT_TRIP
+GROUP BY START_DATE_KEY
+ORDER BY START_DATE_KEY;
+
+-- ============================================================
+-- 13.5 — TOP START STATIONS
+-- ============================================================
+
+SELECT
+    S.STATION_ID,
+    S.STATION_NAME,
+    COUNT(*) AS TRIP_ORIGIN_COUNT
+FROM DIVVY_DB.CORE.FACT_TRIP F
+LEFT JOIN DIVVY_DB.CORE.DIM_STATION S
+    ON S.STATION_KEY = F.START_STATION_KEY
+GROUP BY S.STATION_ID, S.STATION_NAME
+ORDER BY TRIP_ORIGIN_COUNT DESC
+LIMIT 20;
+
+-- ============================================================
+-- 13.6 — CORE/MART TRIP RECONCILIATION
+-- ============================================================
+
+SELECT
+    (SELECT COUNT(*) FROM DIVVY_DB.CORE.FACT_TRIP) AS FACT_TRIP_COUNT,
+    (SELECT COALESCE(SUM(TOTAL_TRIPS), 0) FROM DIVVY_DB.MART.MART_OPERATIONS) AS MART_TOTAL_TRIPS,
+    (SELECT COUNT(*) FROM DIVVY_DB.CORE.FACT_TRIP)
+      - (SELECT COALESCE(SUM(TOTAL_TRIPS), 0) FROM DIVVY_DB.MART.MART_OPERATIONS) AS DIFFERENCE;
+
+-- ============================================================
+-- 13.7 — MART RIDER RECONCILIATION
+-- ============================================================
+
+SELECT
+    (SELECT COUNT(*) FROM DIVVY_DB.CORE.FACT_TRIP) AS FACT_TRIP_COUNT,
+    (SELECT COALESCE(SUM(TOTAL_TRIPS), 0) FROM DIVVY_DB.MART.MART_RIDER) AS MART_RIDER_TRIPS,
+    (SELECT COUNT(*) FROM DIVVY_DB.CORE.FACT_TRIP)
+      - (SELECT COALESCE(SUM(TOTAL_TRIPS), 0) FROM DIVVY_DB.MART.MART_RIDER) AS DIFFERENCE;
+
+-- ============================================================
+-- 13.8 — NULL FOREIGN-KEY CHECKS
+-- ============================================================
+
+SELECT
+    COUNT_IF(START_STATION_KEY IS NULL) AS NULL_START_STATION_KEYS,
+    COUNT_IF(END_STATION_KEY IS NULL) AS NULL_END_STATION_KEYS,
+    COUNT_IF(RIDER_KEY IS NULL) AS NULL_RIDER_KEYS
+FROM DIVVY_DB.CORE.FACT_TRIP;
+
+-- ============================================================
+-- 13.9 — DURATION SANITY CHECK
+-- ============================================================
+
+SELECT
+    MIN(TRIP_DURATION_MINUTES) AS MIN_DURATION_MINUTES,
+    ROUND(AVG(TRIP_DURATION_MINUTES), 2) AS AVG_DURATION_MINUTES,
+    MAX(TRIP_DURATION_MINUTES) AS MAX_DURATION_MINUTES,
+    COUNT_IF(TRIP_DURATION_MINUTES < 0) AS NEGATIVE_DURATION_ROWS
+FROM DIVVY_DB.CORE.FACT_TRIP;
+
+-- ============================================================
+-- 13.10 — GBFS SNAPSHOT COVERAGE
+-- ============================================================
+
+SELECT
+    DATE_KEY,
+    COUNT(*) AS STATION_STATUS_ROWS,
+    COUNT(DISTINCT STATION_KEY) AS STATIONS_COVERED
+FROM DIVVY_DB.CORE.FACT_STATION_STATUS
+GROUP BY DATE_KEY
+ORDER BY DATE_KEY;
+
+SELECT
+    DATE_KEY,
+    COUNT(*) AS VEHICLE_STATUS_ROWS,
+    COUNT(DISTINCT VEHICLE_KEY) AS VEHICLES_COVERED
+FROM DIVVY_DB.CORE.FACT_VEHICLE_STATUS
+GROUP BY DATE_KEY
+ORDER BY DATE_KEY;
+
+-- ============================================================
+-- 13.11 — FINAL AUDIT STATUS
+-- ============================================================
+
+SELECT
+    PIPELINE_NAME,
+    STATUS,
+    START_TIME,
+    END_TIME,
+    RECORDS_PROCESSED,
+    RECORDS_REJECTED,
+    ERROR_MESSAGE
+FROM DIVVY_DB.AUDIT.PIPELINE_RUN
+ORDER BY START_TIME DESC
+LIMIT 10;
+
+SELECT
+    STATUS,
+    COUNT(*) AS CHECK_COUNT
+FROM DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
+GROUP BY STATUS
+ORDER BY STATUS;
