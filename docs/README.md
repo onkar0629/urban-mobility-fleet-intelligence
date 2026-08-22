@@ -2,7 +2,7 @@
 
 **Project:** Urban Mobility & Fleet Intelligence  
 **Version:** 1.0  
-**Status:** Final Baseline  
+**Status:** Implemented and Validated  
 **Project Type:** Snowflake-Centric Data Engineering Portfolio Project
 
 ## 1. Project Overview
@@ -90,7 +90,7 @@ Facts
 └── FACT_VEHICLE_STATUS
 ```
 
-Exact physical columns and relationships are finalized from verified source data.
+Physical columns and relationships have been implemented in Snowflake from verified source data.
 
 ## 8. Pipelines
 
@@ -129,6 +129,8 @@ Power BI consumes curated Snowflake data marts. Planned analytical areas:
 - Fleet & Station Intelligence
 - Rider Analytics
 - Operations Analytics
+
+Dashboard build guidance is available in [Power BI Dashboard Guide](../powerbi/README.md).
 
 ## 13. Documentation Map
 

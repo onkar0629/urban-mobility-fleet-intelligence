@@ -82,11 +82,30 @@ The complete engineering documentation is maintained in the [`docs/`](docs/) dir
 
 ---
 
-## 🚧 Project Status
+## ✅ Project Status
 
-**Currently under active development.**
+**Snowflake data platform completed and validated.**
 
-The platform is being built incrementally from source ingestion through Snowflake transformation, validation, monitoring, and BI.
+The platform now supports historical trip ingestion, GBFS snapshot ingestion, Snowflake ELT, dimensional CORE tables, analytical MART tables, audit monitoring, and data-quality validation. Power BI should consume the curated MART layer.
+
+Historical file automation is available in two patterns:
+
+- Manual rerun: upload new CSV files to ADLS and run `sql/08_historical_ingestion.sql`.
+- Optional Snowpipe/task automation: deploy `sql/15_historical_auto_ingestion.sql`, refresh the pipe in controlled mode, or configure Azure Event Grid for fully event-driven loading.
+
+### Latest Validation Snapshot
+
+| Layer/Object | Row Count |
+|---|---:|
+| RAW_TRIPS | 869,051 |
+| STG_TRIPS | 869,051 |
+| FACT_TRIP | 565,273 |
+| RAW_GBFS | 10 |
+| STG_STATION_STATUS | 10,243 |
+| STG_VEHICLE_STATUS | 15,588 |
+| FACT_STATION_STATUS | 10,243 |
+| FACT_VEHICLE_STATUS | 15,588 |
+| MART_FLEET | 6 |
 
 ---
 

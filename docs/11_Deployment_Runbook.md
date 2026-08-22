@@ -148,6 +148,143 @@ Operational command:
 08_historical_ingestion.sql
 ```
 
+### 8.1 Adding More Historical Files
+
+If new Divvy CSV files are uploaded to:
+
+```text
+azure://umfiadlsg2onkar.blob.core.windows.net/divvy-data/historical/
+```
+
+the current manual process is:
+
+```bash
+snowsql -f sql/08_historical_ingestion.sql
+```
+
+Snowflake `COPY INTO` tracks file load history, so previously loaded files are skipped and new files are loaded.
+
+### 8.2 Optional Historical Automation
+
+The project also includes an optional automated historical ingestion setup:
+
+```bash
+snowsql -f sql/15_historical_auto_ingestion.sql
+```
+
+This creates:
+
+- `DIVVY_DB.RAW.PIPE_HISTORICAL_TRIPS`
+- `DIVVY_DB.RAW.STR_RAW_TRIPS`
+- `DIVVY_DB.AUDIT.SP_PROCESS_HISTORICAL_STREAM`
+- `DIVVY_DB.AUDIT.TASK_HISTORICAL_PIPELINE`
+- `DIVVY_DB.AUDIT.HISTORICAL_STREAM_CONSUMPTION`
+
+#### Controlled Automation Mode
+
+Use this when Azure Event Grid auto-ingest is not configured.
+
+1. Upload new historical CSV files to ADLS:
+
+```text
+divvy-data/historical/
+```
+
+2. Refresh the historical pipe:
+
+```bash
+snowsql -q "ALTER PIPE DIVVY_DB.RAW.PIPE_HISTORICAL_TRIPS REFRESH;"
+```
+
+3. Wait for files to load, then check RAW count:
+
+```bash
+snowsql -q "SELECT COUNT(*) AS RAW_TRIPS_COUNT FROM DIVVY_DB.RAW.RAW_TRIPS;"
+```
+
+4. Check whether the stream has data:
+
+```bash
+snowsql -q "SELECT SYSTEM$STREAM_HAS_DATA('DIVVY_DB.RAW.STR_RAW_TRIPS') AS STREAM_HAS_DATA;"
+```
+
+5. Either wait for the scheduled task, or manually run:
+
+```bash
+snowsql -q "CALL DIVVY_DB.AUDIT.SP_PROCESS_HISTORICAL_STREAM();"
+```
+
+6. Validate downstream counts:
+
+```bash
+snowsql -q "SELECT 'RAW_TRIPS' AS OBJECT_NAME, COUNT(*) FROM DIVVY_DB.RAW.RAW_TRIPS UNION ALL SELECT 'STG_TRIPS', COUNT(*) FROM DIVVY_DB.STAGING.STG_TRIPS UNION ALL SELECT 'FACT_TRIP', COUNT(*) FROM DIVVY_DB.CORE.FACT_TRIP UNION ALL SELECT 'MART_OPERATIONS', COUNT(*) FROM DIVVY_DB.MART.MART_OPERATIONS;"
+```
+
+7. Refresh quality checks:
+
+```bash
+snowsql -q "TRUNCATE TABLE DIVVY_DB.AUDIT.DATA_QUALITY_RESULT;"
+snowsql -f sql/11_quality_audit_validation.sql
+snowsql -f sql/13_validation_queries.sql
+```
+
+#### Fully Automatic Event-Driven Mode
+
+Use this when files should load automatically immediately after landing in ADLS.
+
+Snowflake automatic Snowpipe for Azure requires Azure Event Grid and a Snowflake notification integration. The high-level flow is:
+
+```text
+ADLS new CSV file
+ → Azure Event Grid notification
+ → Snowflake notification integration
+ → Snowpipe PIPE_HISTORICAL_TRIPS
+ → RAW_TRIPS
+ → STR_RAW_TRIPS
+ → TASK_HISTORICAL_PIPELINE
+ → STAGING / CORE / MART
+```
+
+Steps:
+
+1. Create or confirm the ADLS historical landing path:
+
+```text
+divvy-data/historical/
+```
+
+2. Create an Azure Event Grid subscription for blob-created events on the storage account/container.
+
+3. Create a Snowflake notification integration for Azure Event Grid according to your Snowflake account and Azure tenant.
+
+4. Grant the Snowflake-created Azure service principal access to the Event Grid subscription or queue endpoint required by the notification integration.
+
+5. Recreate `PIPE_HISTORICAL_TRIPS` with:
+
+```sql
+AUTO_INGEST = TRUE
+NOTIFICATION_INTEGRATION = <your_notification_integration_name>
+```
+
+6. Upload a small test CSV file to ADLS.
+
+7. Validate pipe status:
+
+```bash
+snowsql -q "SELECT SYSTEM$PIPE_STATUS('DIVVY_DB.RAW.PIPE_HISTORICAL_TRIPS') AS PIPE_STATUS;"
+```
+
+8. Validate stream/task processing:
+
+```bash
+snowsql -q "SELECT SYSTEM$STREAM_HAS_DATA('DIVVY_DB.RAW.STR_RAW_TRIPS') AS STREAM_HAS_DATA;"
+snowsql -q "SELECT * FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(TASK_NAME => 'DIVVY_DB.AUDIT.TASK_HISTORICAL_PIPELINE', SCHEDULED_TIME_RANGE_START => DATEADD('day', -1, CURRENT_TIMESTAMP()))) ORDER BY SCHEDULED_TIME DESC;"
+```
+
+9. Refresh Power BI after Snowflake MART tables update.
+
+Important note: Azure Event Grid objects are not created by this repository because they depend on subscription-level Azure permissions and must not include secrets in GitHub.
+
 ## 9. GBFS Deployment
 
 ```text
@@ -282,6 +419,8 @@ sql/10_streams_tasks.sql
 sql/11_quality_audit_validation.sql
 sql/12_audit_monitoring.sql
 sql/13_validation_queries.sql
+sql/14_powerbi_views.sql
+sql/15_historical_auto_ingestion.sql
 ```
 
 ## 16. Failure Recovery
@@ -318,8 +457,37 @@ Source data should be recoverable from ADLS or RAW where possible.
 
 ## 19. Operational Commands
 
-Exact Azure CLI, SnowSQL, Python, Linux, Snowpipe, Stream, Task, and validation commands will be added alongside the implementation so the runbook reflects the actual deployed project rather than hypothetical commands.
+Common commands:
+
+```bash
+# Manual historical processing
+snowsql -f sql/08_historical_ingestion.sql
+
+# Optional historical controlled automation
+snowsql -f sql/15_historical_auto_ingestion.sql
+snowsql -q "ALTER PIPE DIVVY_DB.RAW.PIPE_HISTORICAL_TRIPS REFRESH;"
+snowsql -q "CALL DIVVY_DB.AUDIT.SP_PROCESS_HISTORICAL_STREAM();"
+
+# GBFS processing
+cd python/gbfs_ingestion
+source .venv/bin/activate
+python main.py
+
+cd ../..
+snowsql -f sql/09_gbfs_ingestion.sql
+snowsql -f sql/10_streams_tasks.sql
+snowsql -q "CALL DIVVY_DB.AUDIT.SP_PROCESS_GBFS_STREAM();"
+
+# Validation
+snowsql -q "TRUNCATE TABLE DIVVY_DB.AUDIT.DATA_QUALITY_RESULT;"
+snowsql -f sql/11_quality_audit_validation.sql
+snowsql -f sql/12_audit_monitoring.sql
+snowsql -f sql/13_validation_queries.sql
+
+# Power BI views
+snowsql -f sql/14_powerbi_views.sql
+```
 
 ## 20. Status
 
-**Version 1.0 — Final Baseline.** Operational commands and restart procedures are implementation-dependent and will be added as the corresponding components are built.
+**Version 1.0 — Implemented and validated.** Manual and optional automated historical ingestion patterns are documented. Fully event-driven ADLS automation requires Azure Event Grid and Snowflake notification integration setup in the target cloud account.

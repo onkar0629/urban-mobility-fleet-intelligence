@@ -36,6 +36,7 @@ AS
 $$
 DECLARE
     V_RUN_ID VARCHAR DEFAULT UUID_STRING();
+    V_ERROR_MESSAGE VARCHAR;
 BEGIN
     INSERT INTO DIVVY_DB.AUDIT.PIPELINE_RUN
     (
@@ -75,23 +76,23 @@ BEGIN
                 COALESCE(
                     DATEADD(
                         'second',
-                        TRY_TO_NUMBER(R.RAW_JSON:last_updated),
+                        TRY_TO_NUMBER(R.RAW_JSON:last_updated::VARCHAR),
                         TO_TIMESTAMP_NTZ('1970-01-01 00:00:00')
                     ),
                     R.INGESTION_TIMESTAMP
                 ) AS SNAPSHOT_TIMESTAMP,
                 CASE
-                    WHEN TRY_TO_NUMBER(F.VALUE:is_installed) = 0 THEN 'NOT_INSTALLED'
-                    WHEN TRY_TO_NUMBER(F.VALUE:is_renting) = 0 THEN 'NOT_RENTING'
-                    WHEN TRY_TO_NUMBER(F.VALUE:is_returning) = 0 THEN 'NOT_RETURNING'
+                    WHEN TRY_TO_NUMBER(F.VALUE:is_installed::VARCHAR) = 0 THEN 'NOT_INSTALLED'
+                    WHEN TRY_TO_NUMBER(F.VALUE:is_renting::VARCHAR) = 0 THEN 'NOT_RENTING'
+                    WHEN TRY_TO_NUMBER(F.VALUE:is_returning::VARCHAR) = 0 THEN 'NOT_RETURNING'
                     ELSE 'ACTIVE'
                 END AS STATION_STATUS,
                 COALESCE(
-                    TRY_TO_NUMBER(F.VALUE:num_bikes_available),
-                    TRY_TO_NUMBER(F.VALUE:num_vehicles_available),
+                    TRY_TO_NUMBER(F.VALUE:num_bikes_available::VARCHAR),
+                    TRY_TO_NUMBER(F.VALUE:num_vehicles_available::VARCHAR),
                     0
                 ) AS NUM_VEHICLES_AVAILABLE,
-                COALESCE(TRY_TO_NUMBER(F.VALUE:num_docks_available), 0) AS NUM_DOCKS_AVAILABLE,
+                COALESCE(TRY_TO_NUMBER(F.VALUE:num_docks_available::VARCHAR), 0) AS NUM_DOCKS_AVAILABLE,
                 R.SOURCE_FILE,
                 R.LOAD_ID,
                 CURRENT_TIMESTAMP() AS STAGING_TIMESTAMP,
@@ -101,15 +102,14 @@ BEGIN
                         F.VALUE:station_id::VARCHAR,
                         R.SOURCE_FILE,
                         COALESCE(
-                            DATEADD('second', TRY_TO_NUMBER(R.RAW_JSON:last_updated), TO_TIMESTAMP_NTZ('1970-01-01 00:00:00')),
+                            DATEADD('second', TRY_TO_NUMBER(R.RAW_JSON:last_updated::VARCHAR), TO_TIMESTAMP_NTZ('1970-01-01 00:00:00')),
                             R.INGESTION_TIMESTAMP
                         )
                     ORDER BY R.INGESTION_TIMESTAMP DESC
                 ) AS RN
-            FROM DIVVY_DB.RAW.STR_RAW_GBFS R,
+            FROM DIVVY_DB.RAW.RAW_GBFS R,
                  LATERAL FLATTEN(INPUT => R.RAW_JSON:data:stations) F
-            WHERE R.METADATA$ACTION = 'INSERT'
-              AND LOWER(COALESCE(R.FEED_NAME, '')) = 'station_status'
+            WHERE LOWER(COALESCE(R.FEED_NAME, '')) = 'station_status'
         ) X
         WHERE RN = 1
     ) S
@@ -146,22 +146,28 @@ BEGIN
         FROM
         (
             SELECT
-                F.VALUE:vehicle_id::VARCHAR AS VEHICLE_ID,
-                F.VALUE:vehicle_type_id::VARCHAR AS VEHICLE_TYPE_ID,
+                COALESCE(
+                    F.VALUE:vehicle_id::VARCHAR,
+                    F.VALUE:bike_id::VARCHAR
+                ) AS VEHICLE_ID,
+                COALESCE(
+                    F.VALUE:vehicle_type_id::VARCHAR,
+                    F.VALUE:type::VARCHAR
+                ) AS VEHICLE_TYPE_ID,
                 F.VALUE:station_id::VARCHAR AS STATION_ID,
-                TRY_TO_NUMBER(F.VALUE:lat) AS LATITUDE,
-                TRY_TO_NUMBER(F.VALUE:lon) AS LONGITUDE,
+                TRY_TO_NUMBER(F.VALUE:lat::VARCHAR) AS LATITUDE,
+                TRY_TO_NUMBER(F.VALUE:lon::VARCHAR) AS LONGITUDE,
                 COALESCE(
                     F.VALUE:current_status::VARCHAR,
                     CASE
-                        WHEN TRY_TO_NUMBER(F.VALUE:is_disabled) = 1 THEN 'DISABLED'
+                        WHEN TRY_TO_NUMBER(F.VALUE:is_disabled::VARCHAR) = 1 THEN 'DISABLED'
                         ELSE 'AVAILABLE'
                     END
                 ) AS VEHICLE_STATUS,
                 COALESCE(
                     DATEADD(
                         'second',
-                        TRY_TO_NUMBER(R.RAW_JSON:last_updated),
+                        TRY_TO_NUMBER(R.RAW_JSON:last_updated::VARCHAR),
                         TO_TIMESTAMP_NTZ('1970-01-01 00:00:00')
                     ),
                     R.INGESTION_TIMESTAMP
@@ -172,18 +178,17 @@ BEGIN
                 ROW_NUMBER() OVER
                 (
                     PARTITION BY
-                        F.VALUE:vehicle_id::VARCHAR,
+                        COALESCE(F.VALUE:vehicle_id::VARCHAR, F.VALUE:bike_id::VARCHAR),
                         R.SOURCE_FILE,
                         COALESCE(
-                            DATEADD('second', TRY_TO_NUMBER(R.RAW_JSON:last_updated), TO_TIMESTAMP_NTZ('1970-01-01 00:00:00')),
+                            DATEADD('second', TRY_TO_NUMBER(R.RAW_JSON:last_updated::VARCHAR), TO_TIMESTAMP_NTZ('1970-01-01 00:00:00')),
                             R.INGESTION_TIMESTAMP
                         )
                     ORDER BY R.INGESTION_TIMESTAMP DESC
                 ) AS RN
-            FROM DIVVY_DB.RAW.STR_RAW_GBFS R,
+            FROM DIVVY_DB.RAW.RAW_GBFS R,
                  LATERAL FLATTEN(INPUT => R.RAW_JSON:data:bikes) F
-            WHERE R.METADATA$ACTION = 'INSERT'
-              AND LOWER(COALESCE(R.FEED_NAME, '')) IN ('free_bike_status', 'vehicle_status')
+            WHERE LOWER(COALESCE(R.FEED_NAME, '')) IN ('free_bike_status', 'vehicle_status')
         ) X
         WHERE RN = 1
     ) S
@@ -370,13 +375,16 @@ BEGIN
 
 EXCEPTION
     WHEN OTHER THEN
+        V_ERROR_MESSAGE := SQLERRM;
+
         UPDATE DIVVY_DB.AUDIT.PIPELINE_RUN
         SET
             END_TIME = CURRENT_TIMESTAMP(),
             STATUS = 'FAILED',
-            ERROR_MESSAGE = SQLERRM
+            ERROR_MESSAGE = :V_ERROR_MESSAGE
         WHERE PIPELINE_RUN_ID = :V_RUN_ID;
-        RETURN 'GBFS_INCREMENTAL_FAILED: ' || SQLERRM;
+
+        RETURN 'GBFS_INCREMENTAL_FAILED: ' || V_ERROR_MESSAGE;
 END;
 $$;
 
