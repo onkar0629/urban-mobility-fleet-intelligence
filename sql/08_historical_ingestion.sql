@@ -40,12 +40,8 @@ LIST @DIVVY_DB.RAW.STG_HISTORICAL_TRIPS;
 -- ============================================================
 -- 08.3 — START AUDIT RUN
 -- ============================================================
--- A temporary context table is used instead of a session SET
--- variable so the script runs reliably from DataGrip.
 
-CREATE OR REPLACE TEMPORARY TABLE DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN
-AS
-SELECT UUID_STRING() AS PIPELINE_RUN_ID;
+SET HISTORICAL_RUN_ID = UUID_STRING();
 
 INSERT INTO DIVVY_DB.AUDIT.PIPELINE_RUN
 (
@@ -58,8 +54,9 @@ INSERT INTO DIVVY_DB.AUDIT.PIPELINE_RUN
     RECORDS_PROCESSED,
     RECORDS_REJECTED
 )
-SELECT
-    PIPELINE_RUN_ID,
+VALUES
+(
+    $HISTORICAL_RUN_ID,
     'HISTORICAL_TRIPS',
     'DIVVY',
     NULL,
@@ -67,7 +64,7 @@ SELECT
     'RUNNING',
     0,
     0
-FROM DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN;
+);
 
 -- ============================================================
 -- 08.4 — COPY ADLS → RAW
@@ -119,7 +116,9 @@ FROM
         CURRENT_TIMESTAMP()
     FROM @DIVVY_DB.RAW.STG_HISTORICAL_TRIPS
 )
-FILE_FORMAT = DIVVY_DB.RAW.FF_DIVVY_TRIPS
+FILE_FORMAT = (
+    FORMAT_NAME = DIVVY_DB.RAW.FF_DIVVY_TRIPS
+)
 ON_ERROR = 'ABORT_STATEMENT';
 
 -- ============================================================
@@ -144,26 +143,12 @@ CALL DIVVY_DB.MART.SP_REFRESH_MARTS();
 -- 08.8 — COMPLETE AUDIT RUN
 -- ============================================================
 
-UPDATE DIVVY_DB.AUDIT.PIPELINE_RUN P
+UPDATE DIVVY_DB.AUDIT.PIPELINE_RUN
 SET
     END_TIME = CURRENT_TIMESTAMP(),
     STATUS = 'SUCCESS',
-    RECORDS_PROCESSED =
-    (
-        SELECT COUNT(*)
-        FROM DIVVY_DB.STAGING.STG_TRIPS
-        WHERE IS_VALID_TIMESTAMP
-          AND IS_VALID_DURATION
-          AND IS_VALID_STATION
-          AND NOT IS_DUPLICATE
-    )
-WHERE P.PIPELINE_RUN_ID =
-(
-    SELECT PIPELINE_RUN_ID
-    FROM DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN
-);
-
-DROP TABLE IF EXISTS DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN;
+    RECORDS_PROCESSED = (SELECT COUNT(*) FROM DIVVY_DB.CORE.FACT_TRIP)
+WHERE PIPELINE_RUN_ID = $HISTORICAL_RUN_ID;
 
 -- ============================================================
 -- 08.9 — VALIDATION

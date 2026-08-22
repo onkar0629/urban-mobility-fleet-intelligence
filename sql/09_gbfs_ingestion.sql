@@ -34,13 +34,18 @@ FROM
         'DIVVY_GBFS',
         METADATA$FILENAME,
         METADATA$FILENAME,
-        REGEXP_SUBSTR(METADATA$FILENAME, '(station_status|vehicle_status)', 1, 1, 'i'),
+        COALESCE(
+            $1:ingestion_metadata:feed_name::VARCHAR,
+            REGEXP_SUBSTR(METADATA$FILENAME, '(station_status|free_bike_status|vehicle_status)', 1, 1, 'i')
+        ),
         METADATA$FILE_CONTENT_KEY,
         CURRENT_TIMESTAMP(),
         $1
     FROM @DIVVY_DB.RAW.STG_GBFS
 )
-FILE_FORMAT = DIVVY_DB.RAW.FF_GBFS_JSON;
+FILE_FORMAT = (
+    FORMAT_NAME = DIVVY_DB.RAW.FF_GBFS_JSON
+);
 
 -- Controlled load of files currently present in ADLS.
 ALTER PIPE DIVVY_DB.RAW.PIPE_GBFS REFRESH;

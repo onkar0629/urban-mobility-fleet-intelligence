@@ -47,6 +47,8 @@ def save_json(
                 ingestion_timestamp.isoformat()
             )
         },
+        "last_updated": data.get("last_updated"),
+        "ttl": data.get("ttl"),
         "data": data.get("data", data)
     }
 

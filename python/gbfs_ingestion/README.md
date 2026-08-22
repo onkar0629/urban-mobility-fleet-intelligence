@@ -105,6 +105,8 @@ The generated JSON contains ingestion metadata such as:
     "load_id": "...",
     "ingestion_timestamp": "..."
   },
+  "last_updated": 1787215466,
+  "ttl": 30,
   "data": {
     "stations": []
   }

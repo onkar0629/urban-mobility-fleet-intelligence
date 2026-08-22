@@ -104,6 +104,19 @@ MART
 AUDIT
 ```
 
+Run the Snowflake setup files in dependency order:
+
+```sql
+-- Execute from the repository sql/ directory in Snowflake, Snowsight, or DataGrip.
+01_database_schema.sql
+02_file_formats.sql
+03_raw_tables.sql
+04_staging_tables.sql
+05_core_tables.sql
+06_mart_tables.sql
+07_external_stages.sql
+```
+
 ## 8. Historical Deployment
 
 ```text
@@ -129,6 +142,12 @@ Validation gates:
 - CORE grain/relationships validate
 - MART reconciles to CORE
 
+Operational command:
+
+```sql
+08_historical_ingestion.sql
+```
+
 ## 9. GBFS Deployment
 
 ```text
@@ -147,6 +166,30 @@ GBFS API
 ```
 
 Validate API response, JSON structure, file creation, ADLS arrival, Snowpipe ingestion, stream changes, task execution, and downstream data.
+
+Current implementation boundary:
+
+- Python writes validated GBFS JSON snapshots locally under `python/gbfs_ingestion/output/`.
+- Upload those files to the configured ADLS `gbfs/` path.
+- Snowflake loads the files through `PIPE_GBFS`.
+- The stream/task procedure transforms GBFS RAW rows into STAGING, CORE, and MART.
+
+Operational commands:
+
+```bash
+cd python/gbfs_ingestion
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python main.py
+```
+
+After the generated JSON files are uploaded to ADLS:
+
+```sql
+09_gbfs_ingestion.sql
+10_streams_tasks.sql
+```
 
 ## 10. Python Environment
 
@@ -168,6 +211,12 @@ Operational scripts should:
 
 Deploy validation rules after RAW/STAGING/CORE objects exist. Store quality results where implemented and define severity handling before enabling downstream consumption.
 
+Operational command:
+
+```sql
+11_quality_audit_validation.sql
+```
+
 ## 13. Monitoring Deployment
 
 Add audit/monitoring structures for:
@@ -180,6 +229,13 @@ Add audit/monitoring structures for:
 - Tasks
 - Quality checks
 - CORE/MART reconciliation
+
+Operational commands:
+
+```sql
+12_audit_monitoring.sql
+13_validation_queries.sql
+```
 
 ## 14. Power BI Deployment
 
@@ -206,6 +262,27 @@ Connect Power BI only to curated marts or governed analytical views. Validate KP
 - [ ] Audit/monitoring tested
 - [ ] MARTs validated
 - [ ] Power BI connectivity validated
+
+## 15.1 Full Execution Order
+
+Use this order for a full rebuild or first deployment:
+
+```text
+sql/01_database_schema.sql
+sql/02_file_formats.sql
+sql/03_raw_tables.sql
+sql/04_staging_tables.sql
+sql/05_core_tables.sql
+sql/06_mart_tables.sql
+sql/07_external_stages.sql
+sql/08_historical_ingestion.sql
+python/gbfs_ingestion/main.py
+sql/09_gbfs_ingestion.sql
+sql/10_streams_tasks.sql
+sql/11_quality_audit_validation.sql
+sql/12_audit_monitoring.sql
+sql/13_validation_queries.sql
+```
 
 ## 16. Failure Recovery
 

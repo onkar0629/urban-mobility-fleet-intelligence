@@ -108,7 +108,7 @@ BEGIN
                 ) AS RN
             FROM DIVVY_DB.RAW.STR_RAW_GBFS R,
                  LATERAL FLATTEN(INPUT => R.RAW_JSON:data:stations) F
-            WHERE METADATA$ACTION = 'INSERT'
+            WHERE R.METADATA$ACTION = 'INSERT'
               AND LOWER(COALESCE(R.FEED_NAME, '')) = 'station_status'
         ) X
         WHERE RN = 1
@@ -181,9 +181,9 @@ BEGIN
                     ORDER BY R.INGESTION_TIMESTAMP DESC
                 ) AS RN
             FROM DIVVY_DB.RAW.STR_RAW_GBFS R,
-                 LATERAL FLATTEN(INPUT => R.RAW_JSON:data:vehicles) F
-            WHERE METADATA$ACTION = 'INSERT'
-              AND LOWER(COALESCE(R.FEED_NAME, '')) = 'vehicle_status'
+                 LATERAL FLATTEN(INPUT => R.RAW_JSON:data:bikes) F
+            WHERE R.METADATA$ACTION = 'INSERT'
+              AND LOWER(COALESCE(R.FEED_NAME, '')) IN ('free_bike_status', 'vehicle_status')
         ) X
         WHERE RN = 1
     ) S

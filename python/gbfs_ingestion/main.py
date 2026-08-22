@@ -1,17 +1,27 @@
+import logging
+import sys
+
 from config import GBFS_DISCOVERY_URL, FEEDS, OUTPUT_DIR
 from gbfs_client import GBFSClient
 from validator import validate_gbfs_response, validate_feed_records
 from file_writer import save_json
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s"
+)
+
+
 def main():
     client = GBFSClient(GBFS_DISCOVERY_URL)
+    failed_feeds = []
 
     feed_urls = client.get_feed_urls()
 
     for feed_name in FEEDS:
 
-        print(f"Fetching {feed_name}...")
+        logging.info("Fetching %s", feed_name)
 
         try:
             data = client.fetch_feed(feed_name)
@@ -44,15 +54,22 @@ def main():
                 source_url
             )
 
-            print(
-                f"Successfully saved: {file_path}"
-            )
+            logging.info("Successfully saved %s", file_path)
 
         except Exception as error:
-            print(
-                f"Failed to process {feed_name}: {error}"
-            )
+            failed_feeds.append(feed_name)
+            logging.exception("Failed to process %s: %s", feed_name, error)
+
+    if failed_feeds:
+        raise RuntimeError(
+            "GBFS ingestion failed for feeds: "
+            + ", ".join(failed_feeds)
+        )
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as error:
+        logging.error("GBFS ingestion failed: %s", error)
+        sys.exit(1)

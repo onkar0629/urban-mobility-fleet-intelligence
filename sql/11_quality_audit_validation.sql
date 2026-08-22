@@ -23,8 +23,16 @@ CREATE TABLE IF NOT EXISTS DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
     STATUS          VARCHAR,
     RECORDS_CHECKED NUMBER,
     RECORDS_FAILED  NUMBER,
+    FAILURE_PERCENT NUMBER(10,2),
+    SEVERITY        VARCHAR,
     DETAILS         VARCHAR
 );
+
+ALTER TABLE DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
+    ADD COLUMN IF NOT EXISTS FAILURE_PERCENT NUMBER(10,2);
+
+ALTER TABLE DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
+    ADD COLUMN IF NOT EXISTS SEVERITY VARCHAR;
 
 -- ============================================================
 -- 11.2 — RAW TRIP CHECKS
@@ -235,6 +243,106 @@ FROM
 
 -- ============================================================
 -- 11.6 — QUALITY SUMMARY
+-- ============================================================
+
+-- ============================================================
+-- 11.6 — GBFS SNAPSHOT CHECKS
+-- ============================================================
+
+INSERT INTO DIVVY_DB.AUDIT.DATA_QUALITY_RESULT
+(
+    CHECK_ID, CHECK_NAME, LAYER, OBJECT_NAME, CHECK_TIME,
+    STATUS, RECORDS_CHECKED, RECORDS_FAILED, FAILURE_PERCENT,
+    SEVERITY, DETAILS
+)
+SELECT
+    UUID_STRING(),
+    'STAGING_STATION_STATUS_REQUIRED_FIELDS',
+    'STAGING',
+    'STG_STATION_STATUS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    ROUND(100.0 * FAILURES / NULLIF(TOTAL_ROWS, 0), 2),
+    'HIGH',
+    'Station status snapshots require station_id and snapshot timestamp'
+FROM
+(
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(STATION_ID IS NULL OR SNAPSHOT_TIMESTAMP IS NULL) AS FAILURES
+    FROM DIVVY_DB.STAGING.STG_STATION_STATUS
+)
+
+UNION ALL
+
+SELECT
+    UUID_STRING(),
+    'STAGING_VEHICLE_STATUS_REQUIRED_FIELDS',
+    'STAGING',
+    'STG_VEHICLE_STATUS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    ROUND(100.0 * FAILURES / NULLIF(TOTAL_ROWS, 0), 2),
+    'HIGH',
+    'Vehicle status snapshots require vehicle_id and snapshot timestamp'
+FROM
+(
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(VEHICLE_ID IS NULL OR SNAPSHOT_TIMESTAMP IS NULL) AS FAILURES
+    FROM DIVVY_DB.STAGING.STG_VEHICLE_STATUS
+)
+
+UNION ALL
+
+SELECT
+    UUID_STRING(),
+    'CORE_STATION_STATUS_KEYS_PRESENT',
+    'CORE',
+    'FACT_STATION_STATUS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    ROUND(100.0 * FAILURES / NULLIF(TOTAL_ROWS, 0), 2),
+    'MEDIUM',
+    'Station status facts should resolve station/date/time keys'
+FROM
+(
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(STATION_KEY IS NULL OR DATE_KEY IS NULL OR TIME_KEY IS NULL) AS FAILURES
+    FROM DIVVY_DB.CORE.FACT_STATION_STATUS
+)
+
+UNION ALL
+
+SELECT
+    UUID_STRING(),
+    'CORE_VEHICLE_STATUS_KEYS_PRESENT',
+    'CORE',
+    'FACT_VEHICLE_STATUS',
+    CURRENT_TIMESTAMP(),
+    IFF(FAILURES = 0, 'PASS', 'FAIL'),
+    TOTAL_ROWS,
+    FAILURES,
+    ROUND(100.0 * FAILURES / NULLIF(TOTAL_ROWS, 0), 2),
+    'MEDIUM',
+    'Vehicle status facts should resolve vehicle/date/time keys'
+FROM
+(
+    SELECT
+        COUNT(*) AS TOTAL_ROWS,
+        COUNT_IF(VEHICLE_KEY IS NULL OR DATE_KEY IS NULL OR TIME_KEY IS NULL) AS FAILURES
+    FROM DIVVY_DB.CORE.FACT_VEHICLE_STATUS
+);
+
+-- ============================================================
+-- 11.7 — QUALITY SUMMARY
 -- ============================================================
 
 SELECT
