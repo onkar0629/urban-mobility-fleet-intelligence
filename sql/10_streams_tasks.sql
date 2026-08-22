@@ -10,6 +10,8 @@
 --
 -- The task uses Snowflake-managed serverless compute and is
 -- scheduled hourly. It runs only when the stream contains data.
+-- SHOW_INITIAL_ROWS preserves GBFS rows already loaded by File 09
+-- so the first task execution can initialize the downstream layer.
 -- ============================================================
 
 USE DATABASE DIVVY_DB;
@@ -20,7 +22,8 @@ USE DATABASE DIVVY_DB;
 
 CREATE STREAM IF NOT EXISTS DIVVY_DB.RAW.STR_RAW_GBFS
     ON TABLE DIVVY_DB.RAW.RAW_GBFS
-    APPEND_ONLY = TRUE;
+    APPEND_ONLY = TRUE
+    SHOW_INITIAL_ROWS = TRUE;
 
 -- ============================================================
 -- 10.2 — INCREMENTAL GBFS PROCESSING PROCEDURE

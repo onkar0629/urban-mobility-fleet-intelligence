@@ -72,6 +72,8 @@ FROM DIVVY_DB.AUDIT.TMP_HISTORICAL_RUN;
 -- ============================================================
 -- 08.4 — COPY ADLS → RAW
 -- ============================================================
+-- TRY_* conversions keep malformed source values as NULL so RAW
+-- loading can complete and STAGING can flag the affected rows.
 
 COPY INTO DIVVY_DB.RAW.RAW_TRIPS
 (
@@ -99,16 +101,16 @@ FROM
     SELECT
         $1,
         $2,
-        $3,
-        $4,
+        TRY_TO_TIMESTAMP_NTZ($3),
+        TRY_TO_TIMESTAMP_NTZ($4),
         $5,
         $6,
         $7,
         $8,
-        $9,
-        $10,
-        $11,
-        $12,
+        TRY_TO_DECIMAL($9, 10, 7),
+        TRY_TO_DECIMAL($10, 10, 7),
+        TRY_TO_DECIMAL($11, 10, 7),
+        TRY_TO_DECIMAL($12, 10, 7),
         $13,
         'DIVVY',
         METADATA$FILENAME,

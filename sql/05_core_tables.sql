@@ -10,6 +10,58 @@
 
 USE DATABASE DIVVY_DB;
 
+-- ============================================================
+-- 05.0 — CORE SCHEMA COMPATIBILITY REPAIR
+-- ============================================================
+-- The project was previously run with an older CORE definition.
+-- This block repairs the known legacy column names without
+-- dropping the existing tables, so File 05 remains rerunnable.
+-- ============================================================
+
+EXECUTE IMMEDIATE $$
+BEGIN
+    IF ((SELECT COUNT(*)
+         FROM DIVVY_DB.INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = 'CORE'
+           AND TABLE_NAME = 'DIM_TIME'
+           AND COLUMN_NAME = 'PERIOD_NAME') > 0)
+       AND ((SELECT COUNT(*)
+             FROM DIVVY_DB.INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = 'CORE'
+               AND TABLE_NAME = 'DIM_TIME'
+               AND COLUMN_NAME = 'TIME_BUCKET') = 0) THEN
+        ALTER TABLE DIVVY_DB.CORE.DIM_TIME
+            RENAME COLUMN PERIOD_NAME TO TIME_BUCKET;
+    END IF;
+
+    ALTER TABLE IF EXISTS DIVVY_DB.CORE.DIM_TIME
+        ADD COLUMN IF NOT EXISTS SECOND_NUMBER NUMBER;
+
+    ALTER TABLE IF EXISTS DIVVY_DB.CORE.DIM_TIME
+        ADD COLUMN IF NOT EXISTS PEAK_PERIOD VARCHAR;
+
+    IF ((SELECT COUNT(*)
+         FROM DIVVY_DB.INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = 'CORE'
+           AND TABLE_NAME = 'DIM_RIDER'
+           AND COLUMN_NAME = 'RIDER_CATEGORY') > 0)
+       AND ((SELECT COUNT(*)
+             FROM DIVVY_DB.INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = 'CORE'
+               AND TABLE_NAME = 'DIM_RIDER'
+               AND COLUMN_NAME = 'RIDER_TYPE') = 0) THEN
+        ALTER TABLE DIVVY_DB.CORE.DIM_RIDER
+            RENAME COLUMN RIDER_CATEGORY TO RIDER_TYPE;
+    END IF;
+
+    ALTER TABLE IF EXISTS DIVVY_DB.CORE.DIM_RIDER
+        ADD COLUMN IF NOT EXISTS SOURCE_SYSTEM VARCHAR;
+
+    ALTER TABLE IF EXISTS DIVVY_DB.CORE.DIM_RIDER
+        ADD COLUMN IF NOT EXISTS IS_CURRENT BOOLEAN;
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS DIVVY_DB.CORE.DIM_DATE
 (
     DATE_KEY       NUMBER(8,0) PRIMARY KEY,
@@ -93,11 +145,11 @@ CREATE TABLE IF NOT EXISTS DIVVY_DB.CORE.FACT_TRIP
     TRIP_DURATION_MINUTES NUMBER(12,2),
     START_LAT              NUMBER(10,7),
     START_LNG              NUMBER(10,7),
-    END_LAT                NUMBER(10,7),
-    END_LNG                NUMBER(10,7),
-    SOURCE_FILE            VARCHAR,
-    LOAD_ID                VARCHAR,
-    CREATED_AT             TIMESTAMP_NTZ
+    END_LAT               NUMBER(10,7),
+    END_LNG               NUMBER(10,7),
+    SOURCE_FILE           VARCHAR,
+    LOAD_ID               VARCHAR,
+    CREATED_AT            TIMESTAMP_NTZ
 );
 
 CREATE TABLE IF NOT EXISTS DIVVY_DB.CORE.FACT_STATION_STATUS
