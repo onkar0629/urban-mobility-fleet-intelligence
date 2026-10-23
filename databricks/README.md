@@ -1,55 +1,46 @@
-# Azure Databricks / PySpark Integration
+# Databricks Setup
 
-Starter batch jobs for an optional Databricks processing path in Urban Mobility & Fleet Intelligence.
+This folder contains starter PySpark jobs for processing trip CSV files and GBFS JSON snapshots.
 
 ## Files
 
-- `trip_bronze_to_silver.py` — standardizes historical trip CSV data and separates rejected rows.
-- `gbfs_bronze_to_silver.py` — reads GBFS JSON snapshots and separates records requiring review.
-- `requirements.txt` — optional local-testing dependency note. Databricks Runtime typically supplies PySpark.
+- `trip_bronze_to_silver.py` — reads trip CSV files and separates accepted records from records that need review.
+- `gbfs_bronze_to_silver.py` — reads GBFS JSON and preserves source-file information.
+- `requirements.txt` — optional dependency for compatible local testing. Databricks Runtime normally includes PySpark.
 
-## Prerequisites
+## Before you start
 
-1. An Azure Databricks workspace and supported runtime.
-2. ADLS Gen2 Bronze, Silver, and quarantine locations.
-3. Secure storage access configured in the workspace (managed identity/access connector, service principal, or approved secret scope).
-4. Job parameters for input and output paths.
-5. A sample file whose schema can be inspected and validated.
+You need:
+1. An Azure Databricks workspace.
+2. ADLS Gen2 paths for Bronze, Silver, and Quarantine.
+3. Storage permissions configured securely in the workspace.
+4. A small sample file so you can check the source schema.
 
-Example path pattern:
+Example path format:
 
 ```text
 abfss://<container>@<storage-account>.dfs.core.windows.net/bronze/historical/trips/
-abfss://<container>@<storage-account>.dfs.core.windows.net/silver/trips/
-abfss://<container>@<storage-account>.dfs.core.windows.net/quarantine/trips/
 ```
 
-No real account names, tokens, keys, or secrets belong in these files. An ABFSS path alone does not grant access; configure authentication in the workspace.
+Replace placeholders with your configured paths. Do not put keys, SAS tokens, or passwords in this repository.
 
-## Run from a Databricks notebook or job
+## Run a job
 
-Import the script, configure job parameters, and pass the required path parameters. Review the real source schema before production use.
+Import the script into a Databricks notebook or job and provide these parameters:
 
-Trip job parameters:
-- `--input-path`: Bronze trip CSV directory or file.
-- `--silver-path`: Silver output directory.
-- `--quarantine-path`: rejected-record output directory.
+- `--input-path`: source file or directory.
+- `--silver-path`: output path for accepted records.
+- `--quarantine-path`: output path for records that need review.
+- `--write-mode`: `append` or `overwrite` (optional; defaults to `append`).
 
-GBFS job parameters:
-- `--input-path`: Bronze GBFS JSON directory or file.
-- `--silver-path`: Silver output directory.
-- `--quarantine-path`: rejected-record output directory.
+For the GBFS job, `--multiline` can be set to `true` or `false` to match the JSON file layout.
 
-```text
-ADLS Bronze → Databricks / PySpark → Silver Parquet
-                            └─────→ Quarantine
-Silver → controlled Snowflake ingestion → CORE/MART → Power BI
-```
+## Important notes
 
-## Implementation notes
+- Check the real column names and data types before using the jobs.
+- The checks are intentionally basic; they are not a substitute for feed-specific validation.
+- Test the write mode on a temporary path before using a shared destination.
+- Do not process the same source batch through both the existing Snowflake route and this optional route without duplicate handling.
+- Loading Silver data into Snowflake is a separate step and must be configured and tested.
 
-- Inspect and validate the source schema before trusting the transformations.
-- The starter scripts print basic count summaries. Persistent audit storage and job monitoring still need configuration.
-- Test with a small input before using a production path.
-- Do not run this route alongside the existing Snowflake route for the same batch unless downstream deduplication is deliberate.
-- Existing Snowflake row counts in the main README are not Databricks test results.
+These scripts are a starting point. They have not yet been run in your Azure Databricks workspace.
