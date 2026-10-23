@@ -1,71 +1,85 @@
 # 🚲 Urban Mobility & Fleet Intelligence
 
-### ❄️ End-to-End Data Engineering Project
+### End-to-End Data Engineering Project
 
-A cloud-based Data Engineering platform that transforms urban mobility data into trusted analytical datasets for **trip, station, fleet, and rider intelligence**.
+A cloud-based platform that transforms urban mobility data into trusted analytical datasets for trip, station, fleet, and rider intelligence.
 
 ![Project Architecture](assets/project_architecture.png)
 
-**Azure ADLS Gen2 → Snowflake → Data Marts → Power BI**
+**Azure ADLS Gen2 → Azure Databricks / PySpark (optional) → Snowflake → Data Marts → Power BI**
 
----
+## Project Overview
 
-## 🚀 What is this project?
+Historical Divvy trip data and GBFS mobility feeds are ingested, processed, validated, transformed, and served through analytical data marts.
 
-This project builds an end-to-end data platform for urban mobility.
+**Stack:** Azure ADLS Gen2 • Azure Databricks • Apache Spark / PySpark • Snowflake • Python • SQL • Linux • Power BI
 
-Historical trip data and GBFS mobility feeds are **ingested, processed, validated, transformed, and served through analytical data marts**.
+Databricks is being added as an optional distributed-processing path. The existing Snowflake workflow remains the validated baseline until a Databricks workspace, storage access, jobs, and reconciliation checks are configured and tested.
 
-The platform brings together:
+## Data Engineering Scope
 
-**Azure ADLS Gen2 • Snowflake • Python • SQL • Linux • Power BI**
-
----
-
-## ⚙️ Data Engineering
-
-The project focuses on practical Data Engineering concepts:
-
-- Batch & incremental ingestion
+- Batch and incremental ingestion
 - Cloud data lake architecture
+- Databricks notebooks and PySpark transformations
 - Snowflake ELT pipelines
-- JSON / semi-structured data processing
+- JSON and semi-structured data processing
 - Dimensional data modeling
-- Data quality validation
-- Data lineage
-- Monitoring & error handling
+- Data quality validation and quarantine
+- Data lineage, monitoring, and error handling
 
 ![Data Flow](assets/data_flow.png)
 
----
-
-## 🧰 Technology Stack
+## Technology Stack
 
 | Category | Technology |
 |---|---|
 | Cloud | Microsoft Azure |
-| Storage | ADLS Gen2 |
+| Storage | Azure Data Lake Storage Gen2 |
+| Distributed Processing | Azure Databricks / Apache Spark / PySpark (optional) |
 | Data Warehouse | Snowflake |
-| Processing | SQL / ELT |
+| Data Transformation | PySpark / SQL / ELT |
 | Programming | Python |
 | Automation | Linux / Bash |
 | BI | Power BI |
 | Version Control | Git / GitHub |
 
----
+## Databricks Integration (Optional)
 
-## 📊 What can it answer?
+Databricks provides a proposed Spark processing path for large historical trip CSVs and GBFS JSON snapshots stored in ADLS Gen2.
 
-🚲 **Trips** — demand, duration, peak periods  
-📍 **Stations** — utilization, availability, demand  
-🚴 **Fleet** — availability and operational trends  
-👤 **Riders** — usage patterns and behavior
+```text
+Divvy CSV / GBFS JSON
+        |
+        v
+Azure ADLS Gen2 (Bronze / landing)
+        |
+        v
+Azure Databricks + PySpark
+  - schema and type standardization
+  - timestamp normalization
+  - null and duplicate checks
+  - invalid-record quarantine
+        |
+        v
+Silver Parquet outputs
+        |
+        v
+Controlled Snowflake ingestion / ELT
+        |
+        v
+CORE tables → MARTs → Power BI
+```
 
----
+The Databricks path is optional and not yet represented as deployed. Do not run it alongside the current Snowflake route for the same batch unless duplicate handling is deliberately configured. Starter files and setup guidance are in [`databricks/README.md`](databricks/README.md).
 
-## 📚 Documentation
+## What Can It Answer?
 
-The complete engineering documentation is maintained in the [`docs/`](docs/) directory:
+- **Trips:** demand, duration, peak periods
+- **Stations:** utilization, availability, demand
+- **Fleet:** availability and operational trends
+- **Riders:** usage patterns and behavior
+
+## Documentation
 
 - [01 — Business Requirements](docs/01_Business_Requirements.md)
 - [02 — Source & Data Dictionary](docs/02_Source_and_Data_Dictionary.md)
@@ -78,22 +92,18 @@ The complete engineering documentation is maintained in the [`docs/`](docs/) dir
 - [09 — Data Lineage](docs/09_Data_Lineage.md)
 - [10 — Monitoring & Error Handling](docs/10_Monitoring_Error_Handling.md)
 - [11 — Deployment / Runbook](docs/11_Deployment_Runbook.md)
-- [12 — Main Documentation README](docs/12_Main_README.md)
 
----
+## Existing Project Status
 
-## ✅ Project Status
+**Snowflake data platform completed and validated; Databricks extension is a starter implementation.**
 
-**Snowflake data platform completed and validated.**
-
-The platform now supports historical trip ingestion, GBFS snapshot ingestion, Snowflake ELT, dimensional CORE tables, analytical MART tables, audit monitoring, and data-quality validation. Power BI should consume the curated MART layer.
+The current Snowflake implementation supports historical trip ingestion, GBFS snapshot ingestion, Snowflake ELT, dimensional CORE tables, analytical MART tables, audit monitoring, and data-quality validation. Power BI consumes the curated MART layer.
 
 Historical file automation is available in two patterns:
-
 - Manual rerun: upload new CSV files to ADLS and run `sql/08_historical_ingestion.sql`.
-- Optional Snowpipe/task automation: deploy `sql/15_historical_auto_ingestion.sql`, refresh the pipe in controlled mode, or configure Azure Event Grid for fully event-driven loading.
+- Optional Snowpipe/task automation: deploy `sql/15_historical_auto_ingestion.sql`, refresh the pipe in controlled mode, or configure Azure Event Grid for event-driven loading.
 
-### Latest Validation Snapshot
+### Existing Snowflake Validation Snapshot
 
 | Layer/Object | Row Count |
 |---|---:|
@@ -107,11 +117,12 @@ Historical file automation is available in two patterns:
 | FACT_VEHICLE_STATUS | 15,588 |
 | MART_FLEET | 6 |
 
----
+These counts describe the existing Snowflake baseline; they are not Databricks test results.
 
-## 👨‍💻 Author
+## Author
 
-**Onkar Jadhav**  
+**Onkar Jadhav**
+
 Aspiring Data Engineer
 
-**SQL • Snowflake • Azure • Python • Data Engineering**
+**SQL • Snowflake • Azure • Databricks • PySpark • Python • Data Engineering**
