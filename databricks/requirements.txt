@@ -1,0 +1,3 @@
+# Optional local testing dependency. Databricks Runtime typically provides PySpark.
+# Select a version compatible with the Spark runtime used for local testing.
+pyspark>=3.5,<4.0
