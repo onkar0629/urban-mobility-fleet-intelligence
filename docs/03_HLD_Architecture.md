@@ -1,101 +1,116 @@
 # 03 — High-Level Design / Architecture
 
-**Version:** 1.0  
-**Status:** Final Baseline  
-**Primary Platform:** Snowflake  
-**Cloud:** Microsoft Azure  
+**Version:** 1.1
+**Status:** Existing Snowflake baseline + optional Databricks extension
+**Primary Warehouse:** Snowflake
+**Cloud:** Microsoft Azure
 **Analytics:** Power BI
 
 ## 1. Purpose
 
-The architecture provides a Snowflake-centric platform for historical batch ingestion and recurring GBFS mobility data. Azure ADLS Gen2 provides cloud landing/storage, Snowflake performs ingestion and ELT, Python/Linux support external automation, and Power BI consumes curated analytical marts.
+The platform ingests historical Divvy trip data and recurring GBFS mobility feeds. Azure Data Lake Storage Gen2 (ADLS Gen2) is the landing zone. The established implementation uses Snowflake for ingestion and ELT. An optional Azure Databricks / PySpark layer is being introduced for scalable file-based transformation before data is loaded into Snowflake.
 
 ## 2. Architecture Objectives
 
-- Reliable historical ingestion
-- Automated GBFS ingestion
-- Centralized cloud landing
-- Snowflake analytical processing
-- RAW / STAGING / CORE / MART separation
-- Incremental processing where justified
-- Data quality and monitoring
-- Secure access
-- Performance and cost awareness
-- Business-ready analytical datasets
+- Reliable historical and GBFS ingestion
+- Centralized cloud landing in ADLS Gen2
+- Reproducible Spark transformations for large files
+- Bronze/Silver curation with validation and quarantine
+- Snowflake CORE/MART modeling and governed analytics
+- Data quality, lineage, auditability, security, and cost control
 
 ## 3. Architecture Principles
 
-### Snowflake-Centric
-Snowflake is the primary analytical and processing platform.
+### Keep the existing baseline working
+The current Snowflake path remains supported. Databricks is an optional extension until cloud configuration, permissions, and reconciliation tests have been completed.
 
-### ELT Over ETL
-Data is loaded before major business transformations:
+### Preserve source data
+Keep source files in the landing/Bronze area and write curated outputs to a separate Silver location. Do not overwrite source files during transformation.
 
-```text
-Extract → Load → Transform
-```
+### Separate lake processing from warehouse modeling
+Databricks handles file-oriented, distributed transformations where useful. Snowflake remains the warehouse for existing CORE facts, dimensions, MARTs, and downstream Power BI.
 
-### Preserve Raw Data
-RAW remains close to source structure and retains ingestion metadata.
-
-### Separation of Responsibilities
-
-| Component | Responsibility |
-|---|---|
-| Divvy | Historical source data |
-| GBFS | API-based mobility data |
-| Python | API extraction and external validation |
-| Linux/Bash | Operational scripting |
-| ADLS Gen2 | Cloud landing/storage |
-| Snowflake | Ingestion, transformation, modeling |
-| SQL | ELT and business logic |
-| Power BI | Visualization |
+### Extract → Land → Transform → Serve
+Files are landed first, validated and transformed, then loaded into the analytical platform.
 
 ## 4. High-Level Architecture
 
 ```text
-              PUBLIC MOBILITY DATA
-                /              \
-      Historical Trips       GBFS API
-             |                  |
-             |               Python
-             |             validation
-             |                  |
-             +---------> Azure ADLS Gen2
-                              |
-                     Snowflake External Stage
-                              |
-                            RAW
-                              |
-                         STAGING
-                              |
-                           CORE
-                              |
-                         DATA MARTS
-                              |
-                          Power BI
+             PUBLIC MOBILITY DATA
+                 /          \\
+       Historical trips     GBFS API
+                |              |
+                |            Python
+                |       request / validate
+                +--------------+
+                               |
+                               v
+                      Azure ADLS Gen2
+                    landing / Bronze zone
+                               |
+                    +----------+-----------+
+                    |                      |
+                    v                      v
+           Existing Snowflake path   Optional Azure Databricks
+           stage / COPY / Snowpipe    Spark / PySpark jobs
+                    |                      |
+                    |                validation + transform
+                    |                      |
+                    |                Silver Parquet / Delta
+                    |                      |
+                    +----------+-----------+
+                               |
+                     Snowflake ingestion
+                   (for curated Spark outputs)
+                               |
+                     STAGING / CORE / MART
+                               |
+                            Power BI
 ```
 
-## 5. Source Layer
+The two paths are alternatives, not a requirement to process every record twice. For a run, choose and document the appropriate path, and prevent duplicate ingestion when Spark outputs are loaded into Snowflake.
 
-Historical trips provide event-level mobility data for trip, rider, station, temporal, and origin/destination analysis. GBFS provides JSON mobility information for station/vehicle availability, status, and operational snapshots.
+## 5. Component Responsibilities
 
-## 6. Azure ADLS Gen2 Layer
+| Component | Responsibility |
+|---|---|
+| Divvy | Historical trip source |
+| GBFS | Mobility station and vehicle feeds |
+| Python | GBFS API extraction, response checks, timestamped snapshots |
+| ADLS Gen2 | Durable landing, archive, quarantine, and curated file zones |
+| Azure Databricks | Optional distributed batch processing using Spark / PySpark |
+| Snowflake | Existing warehouse ingestion, CORE/MART models, SQL transformations and analytics |
+| SQL | Warehouse transformation and business rules |
+| Power BI | Visualization from curated Snowflake MARTs |
+| Git / GitHub | Versioned code and documentation |
 
-Proposed landing structure:
+## 6. ADLS Zone Layout
+
+Proposed layout; configure container names and permissions for the target account:
 
 ```text
 divvy-data/
-├── historical/
-│   └── trips/YYYY/MM/
-├── gbfs/
-│   ├── station_status/YYYY/MM/DD/
-│   └── vehicle_status/YYYY/MM/DD/
+├── bronze/
+│   ├── historical/trips/YYYY/MM/
+│   └── gbfs/YYYY/MM/DD/
+├── silver/
+│   ├── trips/
+│   ├── station_status/
+│   └── vehicle_status/
 ├── archive/
 └── quarantine/
 ```
 
-## 7. Snowflake Layers
+Use Parquet for portable columnar outputs or Delta Lake when the Databricks workspace and downstream access pattern support it. Avoid assuming the Snowflake and Databricks environments share credentials automatically.
+
+## 7. Processing Layers
+
+### Lakehouse layers
+- **Bronze:** source files and ingestion metadata, retained for traceability.
+- **Silver:** standardized types, normalized timestamps, deduplicated records, and quality flags.
+- **Quarantine:** invalid rows/files with reason codes for review.
+
+### Snowflake layers
 
 ```text
 DIVVY_DB
@@ -106,83 +121,79 @@ DIVVY_DB
 └── AUDIT
 ```
 
-- **RAW:** source-aligned data and ingestion metadata
-- **STAGING:** typed, cleaned, standardized data
-- **CORE:** trusted facts and dimensions
-- **MART:** business-ready analytical datasets
-- **AUDIT:** pipeline and operational metadata
+- **RAW:** source-aligned records and load metadata.
+- **STAGING:** typed and standardized warehouse records.
+- **CORE:** trusted facts and dimensions.
+- **MART:** business-ready analytical datasets.
+- **AUDIT:** pipeline and operational metadata.
 
-## 8. Historical Architecture
+## 8. Historical Trip Flow
 
+Existing path:
 ```text
-Divvy Historical File
- → ADLS
- → External Stage
- → COPY INTO
- → RAW
- → STAGING
- → CORE
- → MART
- → Power BI
+Divvy CSV → ADLS → Snowflake Stage → COPY INTO → RAW
+          → STAGING → CORE → MART → Power BI
 ```
 
-Historical loading is batch-oriented and primarily uses Snowflake `COPY INTO`.
-
-## 9. GBFS Architecture
-
+Optional Spark path:
 ```text
-GBFS API
- → Python
- → Validation
- → Timestamped JSON
- → ADLS
- → Snowflake Stage
- → Snowpipe
- → RAW
- → Stream
- → Task
- → STAGING
- → CORE
- → MART
- → Power BI
+Divvy CSV → ADLS Bronze → Databricks / PySpark
+          → schema + quality checks → Silver Parquet/Delta
+          → Snowflake load → CORE/MART → Power BI
 ```
 
-## 10. Incremental Processing
+Use only one active route for each source batch, or define an explicit control table/file ledger to prevent duplicated business records.
 
-Recurring files are candidates for Snowpipe ingestion followed by Streams and Tasks for incremental downstream processing.
+## 9. GBFS Flow
 
+Existing path:
 ```text
-New File
- → Snowpipe
- → RAW
- → Stream
- → Task
- → SQL Transformation
- → MERGE where justified
- → STAGING / CORE
+GBFS API → Python → timestamped JSON → ADLS
+         → Snowpipe / Snowflake → STAGING → CORE → MART
 ```
 
-## 11. Semi-Structured Processing
+Optional Spark path:
+```text
+GBFS API → Python → timestamped JSON → ADLS Bronze
+         → Databricks PySpark JSON parsing and validation
+         → Silver → Snowflake → CORE/MART
+```
 
-GBFS JSON is retained in Snowflake `VARIANT` where appropriate. Arrays can be expanded with `FLATTEN()` and converted into typed relational structures in STAGING.
+## 10. Databricks Job Responsibilities
+
+The starter jobs under `databricks/` show the intended implementation:
+- Read trip CSV and/or GBFS JSON from ADLS paths supplied via parameters.
+- Enforce explicit schemas where practical.
+- Normalize columns and timestamps.
+- Apply deterministic duplicate checks using documented source keys.
+- Separate rejected records and report counts.
+- Write Silver outputs to a distinct location.
+- Emit basic run metrics (input, valid, rejected row counts).
+
+Workspace setup, storage access, job scheduling, identity/secret configuration, and production run history must be implemented and tested in Azure.
+
+## 11. Data Quality and Reconciliation
+
+Minimum checks:
+- Required columns and parseable types.
+- Null checks for required identifiers/timestamps.
+- Duplicate checks using source identifiers and target grain.
+- Trip duration sanity checks after confirming source units.
+- Valid station/feed fields for GBFS.
+- Input = accepted + rejected rows, accounting for parse failures explicitly.
+- Reconcile Databricks Silver counts against Snowflake load and target counts.
 
 ## 12. Security
 
-- Least-privilege permissions
-- Role-based access
-- Secrets outside source code
-- No credentials in GitHub
-- Secure environment configuration
-- Separation of engineering and analytical access
+- Do not commit keys, SAS tokens, connection strings, or credentials.
+- Use managed identity / workspace identity or a secrets scope where configured.
+- Apply least-privilege access to only the required ADLS paths.
+- Prefer non-production data and a limited test path for initial validation.
 
-## 13. Performance & Cost
+## 13. Performance and Cost
 
-Use appropriate warehouse sizing, auto-suspend, incremental processing, query optimization, and Query Profile analysis. Clustering or advanced features are used only when workload evidence justifies them.
+Use job clusters or serverless options available in the target workspace, right-size compute, avoid repeated full scans, partition only when access patterns justify it, and stop compute when no longer required. Measure performance before making claims about improvement.
 
-## 14. Architecture Boundary
+## 14. Boundaries and Status
 
-The project intentionally excludes AWS, Hadoop, Spark, Databricks, Kafka, Airflow, and proprietary operational systems. Components are included because they solve defined project requirements.
-
-## 15. Status
-
-**Version 1.0 — Final Baseline.** Architecture changes require a significant technical, business, data-source, or architectural requirement.
+AWS, Hadoop, Kafka, and Airflow are not part of this project's current scope. Databricks is an optional extension and has not been represented as deployed or validated in the cloud. Snowflake remains the established warehouse and serving layer.
